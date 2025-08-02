@@ -20,9 +20,8 @@ pico_sdk_init()
 
 # rest of your project
 add_executable(main
-    main.c
+    src/main.c
 )
-
 
 target_compile_definitions(main PRIVATE
     WIFI_SSID=\"${WIFI_SSID}\"
@@ -34,6 +33,7 @@ target_include_directories(main PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/..
 )
+
 
 target_link_libraries(main
     pico_stdlib
