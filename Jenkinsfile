@@ -4,8 +4,8 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo "Building the application..."
-                echo "Checking out the code from the repository..."
+                sh 'cmake -S . -B build -DPICO_BOARD=pico2_w'
+                sh 'cmake --build build'
             }
         }
         stage('Test') {
