@@ -5,6 +5,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Building the application..."
+                echo "Checking out the code from the repository..."
             }
         }
         stage('Test') {
