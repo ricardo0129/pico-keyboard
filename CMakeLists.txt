@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.13...3.27)
-set(PICO_BOARD pico2_w)
+# initialize pico-sdk from GIT
+# (note this can come from environment, CMake cache etc)
+set(WIFI_SSID $ENV{WIFI_SSID})
+set(WIFI_PASSWORD $ENV{WIFI_PASSWORD})
+set(TEST_TCP_SERVER_IP $ENV{TEST_TCP_SERVER_IP})
+
+
+
+set(PICO_SDK_FETCH_FROM_GIT on)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
@@ -15,8 +23,22 @@ add_executable(main
     main.c
 )
 
+
+target_compile_definitions(main PRIVATE
+    WIFI_SSID=\"${WIFI_SSID}\"
+    WIFI_PASSWORD=\"${WIFI_PASSWORD}\"
+    TEST_TCP_SERVER_IP=\"${TEST_TCP_SERVER_IP}\"
+)
 # Add pico_stdlib library which aggregates commonly used features
-target_link_libraries(main pico_stdlib pico_cyw43_arch_none picow_tcpip_client_poll pico_cyw43_arch_lwip_poll)
+target_include_directories(main PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/..
+)
+
+target_link_libraries(main
+    pico_stdlib
+    pico_cyw43_arch_lwip_poll
+)
 
 # create map/bin/hex/uf2 file in addition to ELF.
 pico_add_extra_outputs(main)
