@@ -1,7 +1,8 @@
 pipeline {
-    agent any
-    tools {
-        cmake 'cmake-3.28'
+    agent {
+        docker {
+            image 'kitware/cmake:latest' // official image with cmake preinstalled
+        }
     }
     stages {
         stage('Build') {
