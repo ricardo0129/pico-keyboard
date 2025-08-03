@@ -1,6 +1,19 @@
 pipeline {
-    agent any // or specify a specific agent, like 'agent { label 'my-agent' }'
-
+  agent {
+    kubernetes {
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: cpp
+      image: yourrepo/jenkins-cpp-agent:latest
+      command:
+        - cat
+      tty: true
+"""
+    }
+  }
     stages {
         stage('Build') {
             steps {

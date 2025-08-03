@@ -14,6 +14,7 @@ set(PICO_SDK_FETCH_FROM_GIT on)
 include(pico_sdk_import.cmake)
 
 project(my_project)
+enable_testing()
 
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -42,3 +43,9 @@ target_link_libraries(main
 
 # create map/bin/hex/uf2 file in addition to ELF.
 pico_add_extra_outputs(main)
+
+
+add_test(NAME main_test
+    COMMAND main
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/..
+)
