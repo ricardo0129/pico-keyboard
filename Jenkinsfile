@@ -17,10 +17,10 @@ spec:
     stages {
         stage('Build') {
             steps {
-                sh 'whoami'
-                sh 'ls -l'
-                sh 'cmake -S . -B build -DPICO_BOARD=pico2_w'
-                sh 'cmake --build build'
+                container('cpp-builder') {
+                    sh 'cmake -S . -B build -DPICO_BOARD=pico2_w'
+                    sh 'cmake --build build'
+                }
             }
         }
         stage('Test') {
