@@ -1,13 +1,14 @@
 pipeline {
     agent {
         kubernetes {
+            label 'cpp-build-agent'
             yaml """
 apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: cpp-builder
-    image: alpine
+  - name: build
+    image: kitware/cmake:latest  # This image has cmake and gcc/g++
     command:
     - cat
     tty: true
@@ -17,7 +18,7 @@ spec:
     stages {
         stage('Build') {
             steps {
-                container('cpp-builder') {
+                container('build') {
                     sh 'cmake -S . -B build -DPICO_BOARD=pico2_w'
                     sh 'cmake --build build'
                 }
