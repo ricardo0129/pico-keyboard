@@ -1,12 +1,10 @@
 pipeline {
-    agent {
-        docker {
-            image 'kitware/cmake:latest' // official image with cmake preinstalled
-        }
-    }
+    agent any
     stages {
         stage('Build') {
             steps {
+                sh 'whoami'
+                sh 'ls -l'
                 sh 'cmake -S . -B build -DPICO_BOARD=pico2_w'
                 sh 'cmake --build build'
             }
