@@ -8,7 +8,7 @@ kind: Pod
 spec:
   containers:
   - name: build
-    image: kitware/cmake:latest  # This image has cmake and gcc/g++
+    image: kitware/cmake
     command:
     - cat
     tty: true
