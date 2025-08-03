@@ -8,7 +8,7 @@ kind: Pod
 spec:
   containers:
   - name: build
-    image: kitware/cmake
+    image: gcc:12  # Official gcc image
     command:
     - cat
     tty: true
@@ -16,6 +16,16 @@ spec:
         }
     }
     stages {
+        stage('Install cmake') {
+            steps {
+                container('build') {
+                    sh '''
+                      apt-get update
+                      apt-get install -y cmake
+                    '''
+                }
+            }
+        }
         stage('Build') {
             steps {
                 container('build') {
