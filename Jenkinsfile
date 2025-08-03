@@ -1,19 +1,8 @@
 pipeline {
-  agent {
-    kubernetes {
-      yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-    - name: cpp
-      image: yourrepo/jenkins-cpp-agent:latest
-      command:
-        - cat
-      tty: true
-"""
+    agent any
+    tools {
+        cmake 'cmake-3.28'
     }
-  }
     stages {
         stage('Build') {
             steps {
