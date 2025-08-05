@@ -1,6 +1,11 @@
-FROM ubuntu:22.04
+FROM arm64v8/ubuntu:24.04
+
+RUN apt update && \
+    apt install -y ca-certificates git curl && \
+    update-ca-certificates
 
 # Combine RUN commands and clean up unnecessary files
+
 RUN apt update && \
     apt upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \

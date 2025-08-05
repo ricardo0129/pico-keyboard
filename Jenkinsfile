@@ -40,4 +40,11 @@ spec:
             }
         }
     }
+
+    
+    post {
+        success {
+            archiveArtifacts artifacts: 'build/main.uf2', fingerprint: true
+        }
+    }
 }
