@@ -24,6 +24,7 @@ pipeline {
                         git clone https://github.com/raspberrypi/pico-sdk /cache/pico-sdk
                     else
                         echo "Dependency cache found, skipping download."
+                        ls -la /cache
                     fi
                     """
                 }
