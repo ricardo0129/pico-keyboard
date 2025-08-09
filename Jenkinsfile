@@ -2,17 +2,7 @@ pipeline {
     agent {
         kubernetes {
             label 'cpp-build-agent'
-            yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: build
-    image: ricky0129/pico-sdk
-    command:
-    - cat
-    tty: true
-"""
+            yamlFile 'jenkins/pod-template.yaml'
         }
     }
 
