@@ -17,7 +17,7 @@ sock.bind((SERVER_ADDR, SERVER_PORT))
 sock.listen(1)
 print("server listening on", SERVER_ADDR, SERVER_PORT)
 
-# Wait for the client
+# Wait for the client to connect
 con = None
 con, addr = sock.accept()
 print("client connected from", addr)
