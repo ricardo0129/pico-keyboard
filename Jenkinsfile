@@ -30,9 +30,6 @@ pipeline {
             }
         }
         stage('Deploy') {
-            when {
-                branch 'main' // Deploy only for the 'main' branch
-            }
             steps {
                 echo 'Deploying application...'
                 // Add deployment steps here
