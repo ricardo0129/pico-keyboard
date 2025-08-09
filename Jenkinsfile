@@ -15,9 +15,24 @@ pipeline {
     }
 
     stages {
+        stage('Prepare Dependencies') {
+            steps {
+                container('build') {
+                    sh """
+                    if [ ! -d /cache/pico-sdk]; then
+                        echo "Downloading dependency..."
+                        git clone https://github.com/raspberrypi/pico-sdk /cache/pico-sdk
+                    else
+                        echo "Dependency cache found, skipping download."
+                    fi
+                    """
+                }
+            }
+        }
         stage('Build') {
             steps {
                 container('build') {
+                    sh 'export PICO_SDK_PATH=/cache/pico-sdk'
                     sh 'WIFI_SSID=$WIFI_SSID WIFI_PASSWORD=$WIFI_PASSWORD TEST_TCP_SERVER_IP=$TEST_TCP_SERVER_IP cmake -S . -B build -DPICO_BOARD=pico2_w'
                     sh 'cmake --build build'
                 }

@@ -5,7 +5,7 @@ set(WIFI_SSID $ENV{WIFI_SSID})
 set(WIFI_PASSWORD $ENV{WIFI_PASSWORD})
 set(TEST_TCP_SERVER_IP $ENV{TEST_TCP_SERVER_IP})
 
-set(PICO_SDK_FETCH_FROM_GIT on)
+# set(PICO_SDK_FETCH_FROM_GIT on)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()

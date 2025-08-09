@@ -7,3 +7,10 @@ spec:
     command:
     - cat
     tty: true
+    volumeMounts:
+    - name: deps-cache
+      mountPath: /cache
+  volumes:
+  - name: deps-cache
+    persistentVolumeClaim:
+      claimName: cmake-cache-pvc
