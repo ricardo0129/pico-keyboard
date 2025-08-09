@@ -28,6 +28,7 @@ pipeline {
                         rm -rf /cache/pico-sdk
                         echo "Downloading dependency..."
                         git clone https://github.com/raspberrypi/pico-sdk /cache/pico-sdk
+                        cd /cache/pico-sdk
                         git submodule update --init
                     fi
                     """
