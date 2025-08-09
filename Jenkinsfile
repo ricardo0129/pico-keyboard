@@ -19,11 +19,10 @@ pipeline {
             steps {
                 container('build') {
                     sh """
-                    if [ ! -d /cache/pico-sdk]; then
+                    if [ ! -d /cache/pico-sdk ]; then
                         echo "Downloading dependency..."
                         git clone https://github.com/raspberrypi/pico-sdk /cache/pico-sdk
                     else
-                        git clone https://github.com/raspberrypi/pico-sdk /cache/pico-sdk
                         echo "Dependency cache found, skipping download."
                         ls -la /cache
                     fi
