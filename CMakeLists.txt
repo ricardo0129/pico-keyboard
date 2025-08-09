@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13...3.27)
-# initialize pico-sdk from GIT
+# Initialize pico-sdk from GIT
 # (note this can come from environment, CMake cache etc)
 set(WIFI_SSID $ENV{WIFI_SSID})
 set(WIFI_PASSWORD $ENV{WIFI_PASSWORD})
