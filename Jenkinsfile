@@ -32,8 +32,7 @@ pipeline {
         stage('Build') {
             steps {
                 container('build') {
-                    sh 'export PICO_SDK_PATH=/cache/pico-sdk'
-                    sh 'WIFI_SSID=$WIFI_SSID WIFI_PASSWORD=$WIFI_PASSWORD TEST_TCP_SERVER_IP=$TEST_TCP_SERVER_IP cmake -S . -B build -DPICO_BOARD=pico2_w'
+                    sh 'WIFI_SSID=$WIFI_SSID WIFI_PASSWORD=$WIFI_PASSWORD TEST_TCP_SERVER_IP=$TEST_TCP_SERVER_IP cmake -S . -B build -DPICO_BOARD=pico2_w -DPICO_SDK_PATH=/cache/pico-sdk'
                     sh 'cmake --build build'
                 }
             }
