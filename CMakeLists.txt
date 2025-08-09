@@ -26,7 +26,9 @@ target_compile_definitions(main PRIVATE
     WIFI_SSID=\"${WIFI_SSID}\"
     WIFI_PASSWORD=\"${WIFI_PASSWORD}\"
     TEST_TCP_SERVER_IP=\"${TEST_TCP_SERVER_IP}\"
+    PICO_ENTER_USB_BOOT_ON_EXIT=1
 )
+
 # Add pico_stdlib library which aggregates commonly used features
 target_include_directories(main PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
