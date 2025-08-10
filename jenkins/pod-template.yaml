@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: build
+    image: ricky0129/pico-sdk
+    command:
+    - cat
+    tty: true
+    volumeMounts:
+    - name: deps-cache
+      mountPath: /cache
+  volumes:
+  - name: deps-cache
+    persistentVolumeClaim:
+      claimName: cmake-cache-pvc
