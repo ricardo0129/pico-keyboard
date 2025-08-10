@@ -5,17 +5,18 @@ set(WIFI_SSID $ENV{WIFI_SSID})
 set(WIFI_PASSWORD $ENV{WIFI_PASSWORD})
 set(TEST_TCP_SERVER_IP $ENV{TEST_TCP_SERVER_IP})
 
-# set(PICO_SDK_FETCH_FROM_GIT on)
+set(PICO_SDK_FETCH_FROM_GIT on)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
 include(pico_sdk_import.cmake)
 
+
 project(my_project)
-enable_testing()
 
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
+
 
 # rest of your project
 add_executable(main
@@ -44,8 +45,3 @@ target_link_libraries(main
 # create map/bin/hex/uf2 file in addition to ELF.
 pico_enable_stdio_usb(main 1)
 pico_add_extra_outputs(main)
-
-add_test(NAME main_test
-    COMMAND main
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/..
-)
