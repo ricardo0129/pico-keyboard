@@ -1,4 +1,14 @@
-cmake_minimum_required(VERSION 3.13...3.27)
+cmake_minimum_required(VERSION 3.14...3.22)
+
+# ---- Project ----
+
+# Note: update this to your new project's name and version
+#project(
+#  PicoWClient
+#  VERSION 1.0
+#  LANGUAGES CXX C ASM
+#)
+
 # Initialize pico-sdk from GIT
 # (note this can come from environment, CMake cache etc)
 set(WIFI_SSID $ENV{WIFI_SSID})
@@ -9,6 +19,7 @@ set(PICO_SDK_FETCH_FROM_GIT on)
 
 # initialize the SDK based on PICO_SDK_PATH
 # note: this must happen before project()
+include(cmake/CPM.cmake)
 include(pico_sdk_import.cmake)
 
 
@@ -18,10 +29,12 @@ project(my_project)
 pico_sdk_init()
 
 
-# rest of your project
-add_executable(main
-    src/main.c
-)
+# Collect source files for firmware
+file(GLOB_RECURSE headers CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+# Firmware executable target
+add_executable(main ${sources} ${headers})
 
 target_compile_definitions(main PRIVATE
     WIFI_SSID=\"${WIFI_SSID}\"
@@ -35,7 +48,6 @@ target_include_directories(main PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/..
 )
-
 
 target_link_libraries(main
     pico_stdlib
