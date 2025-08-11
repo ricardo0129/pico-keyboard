@@ -2,10 +2,14 @@
 
 #include <string>
 
-namespace greeter {
+namespace pico_net {
 
-  /**  Language codes to be used with the Greeter class */
-  enum class LanguageCode { EN, DE, ES, FR };
+  enum class ClientState {
+    DISCONNECTED,
+    CONNECTING,
+    CONNECTED,
+    ERROR
+  };
 
   /**
    * @brief A class for saying hello in multiple languages

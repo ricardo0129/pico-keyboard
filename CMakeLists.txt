@@ -50,8 +50,6 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(
   ${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
                          $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
-                         ${CMAKE_CURRENT_LIST_DIR}
-                         ${CMAKE_CURRENT_LIST_DIR}/..
 )
 
 # create map/bin/hex/uf2 file in addition to ELF.
