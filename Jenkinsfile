@@ -56,7 +56,7 @@ pipeline {
     
     post {
         success {
-            archiveArtifacts artifacts: 'build/main.uf2', fingerprint: true
+            archiveArtifacts artifacts: 'build/pico_net.uf2', fingerprint: true
         }
     }
 }

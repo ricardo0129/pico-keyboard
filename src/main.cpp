@@ -1,7 +1,6 @@
 #include "pico/stdlib.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
-#include "pico_net/mylib.h"
 
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
@@ -13,6 +12,9 @@
 #include "lwip/pbuf.h"
 #include "lwip/tcp.h"
 
+#include "pico_net/mylib.h"
+#include "pico_net/tcp_struct.h"
+
 
 
 #if !defined(TEST_TCP_SERVER_IP)
@@ -20,8 +22,6 @@
 #endif
 
 #define TCP_PORT 4242
-#define BUF_SIZE 2048
-
 
 #define TEST_ITERATIONS 10
 #define POLL_TIME_S 5
@@ -46,16 +46,6 @@ static void dump_bytes(const uint8_t *bptr, uint32_t len) {
 #define DUMP_BYTES(A, B)
 #endif
 
-struct TCP_CLIENT_T {
-  struct tcp_pcb *tcp_pcb;
-  ip_addr_t remote_addr;
-  uint8_t buffer[BUF_SIZE];
-  int buffer_len;
-  int sent_len;
-  bool complete;
-  int run_count;
-  bool connected;
-};
 
 err_t tcp_client_close(struct TCP_CLIENT_T* state) {
   err_t err = ERR_OK;
@@ -222,15 +212,7 @@ void run_tcp_client_test(void) {
     return;
   }
   while (!state->complete) {
-    // the following #ifdef is only here so this same example can be used in
-    // multiple modes; you do not need it in your code
-    // if you are using pico_cyw43_arch_poll, then you must poll periodically
-    // from your main loop (not from a timer) to check for Wi-Fi driver or lwIP
-    // work that needs to be done.
     cyw43_arch_poll();
-    // you can poll as often as you like, however if you have nothing else to do
-    // you can choose to sleep until either a specified time, or
-    // cyw43_arch_poll() has work to do:
     cyw43_arch_wait_for_work_until(make_timeout_time_ms(1000));
   }
   free(state);
