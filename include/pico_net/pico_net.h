@@ -1,35 +1,29 @@
 #pragma once
 
 #include <string>
+#include "lwip/pbuf.h"
+#include "pico_net/tcp_struct.h"
+#include "lwip/tcp.h"
 
 namespace pico_net {
 
-  enum class ClientState {
-    DISCONNECTED,
-    CONNECTING,
-    CONNECTED,
-    ERROR
-  };
+    err_t tcp_client_close(struct TCP_CLIENT_T* state);
 
-  /**
-   * @brief A class for saying hello in multiple languages
-   */
-  class Greeter {
-    std::string name;
+    err_t tcp_result(void* arg, int status);
 
-  public:
-    /**
-     * @brief Creates a new greeter
-     * @param name the name to greet
-     */
-    Greeter(std::string name);
+    err_t tcp_client_sent(void* arg, struct tcp_pcb *tpcb, u16_t len);
 
-    /**
-     * @brief Creates a localized string containing the greeting
-     * @param lang the language to greet in
-     * @return a string containing the greeting
-     */
-    std::string greet(LanguageCode lang = LanguageCode::EN) const;
-  };
+    err_t tcp_client_connected(void* arg, struct tcp_pcb *tpcb, err_t err);
 
-}  // namespace greeter
+    err_t tcp_client_poll(void* arg, struct tcp_pcb *tpcb);
+
+    void tcp_client_err(void* arg, err_t err);
+
+    err_t tcp_client_recv(void* arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
+
+    bool tcp_client_open(TCP_CLIENT_T* state);
+
+    TCP_CLIENT_T* tcp_client_init();
+
+    void run_tcp_client_test();
+}
