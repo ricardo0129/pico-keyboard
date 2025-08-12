@@ -1,8 +1,4 @@
 #include "pico_net/pico_net.h"
-#include "pico/cyw43_arch.h"
-#include "lwip/pbuf.h"
-#include "lwip/tcp.h"
-#include "pico_net/tcp_struct.h"
 
 using namespace pico_net;
 
@@ -185,18 +181,3 @@ TCP_CLIENT_T* pico_net::tcp_client_init() {
     return state;
 }
 
-void pico_net::run_tcp_client_test(void) {
-    TCP_CLIENT_T *state = tcp_client_init();
-    if (!state) {
-        return;
-    }
-    if (!tcp_client_open(state)) {
-        tcp_result(state, -1);
-        return;
-    }
-    while (!state->complete) {
-        cyw43_arch_poll();
-        cyw43_arch_wait_for_work_until(make_timeout_time_ms(1000));
-    }
-    free(state);
-}

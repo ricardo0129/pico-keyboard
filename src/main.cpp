@@ -1,22 +1,42 @@
-#include "pico/stdlib.h"
-#include "pico/cyw43_arch.h"
-
 #include <unordered_map>
-
 #include <string.h>
 #include <time.h>
 
-#include "lwip/pbuf.h"
-#include "lwip/tcp.h"
-
 #include "pico_net/mylib.h"
-
 #include "pico_net/pico_net.h"
+#include "pico/stdlib.h"
+#include "temp_sensor/pico_temp.h"
 
 
+void pico_net::run_tcp_client_test(void) {
+    TCP_CLIENT_T *state = tcp_client_init();
+    if (!state) {
+        return;
+    }
+    if (!tcp_client_open(state)) {
+        tcp_result(state, -1);
+        return;
+    }
+    while (!state->complete) {
+        /*
+        dht_reading reading;
+        read_from_dht(&reading);
+        float fahrenheit = (reading.temp_celsius * 9 / 5) + 32;
+        printf("Humidity = %.1f%%, Temperature = %.1fC (%.1fF)\n",
+               reading.humidity, reading.temp_celsius, fahrenheit);
+        */
+        cyw43_arch_poll();
+        cyw43_arch_wait_for_work_until(make_timeout_time_ms(1000));
+        //sleep_ms(2000);
+    }
+    free(state);
+}
 
 int main() {
     stdio_init_all();
+
+    gpio_init(DHT_PIN);
+
     const std::unordered_map<std::string, greeter::LanguageCode> languages{
         {"en", greeter::LanguageCode::EN},
         {"de", greeter::LanguageCode::DE},

@@ -3,7 +3,6 @@
 
 #define BUF_SIZE 2048
 
-#include "lwip/pbuf.h"
 #include "lwip/tcp.h"
 
 struct TCP_CLIENT_T {

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
 #include "lwip/pbuf.h"
 #include "pico_net/tcp_struct.h"
 #include "lwip/tcp.h"
+#include "pico/cyw43_arch.h"
 
 namespace pico_net {
 
