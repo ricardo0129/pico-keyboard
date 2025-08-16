@@ -3,7 +3,7 @@
 
 int wait_for_switch(uint pin, uint previous) {
     int count = 0;
-    while(gpi_get(pin) == previous) {
+    while(gpio_get(pin) == previous) {
         count++;
         sleep_us(1);
         if (count > 255) return -1;
@@ -16,20 +16,19 @@ void read_from_dht(dht_reading *result) {
 
     // Send start signal to DHT sensor
     gpio_set_dir(DHT_PIN, GPIO_OUT);
-    gpi_put(DHT_PIN, 0);
+    gpio_put(DHT_PIN, 0);
     //wait at least 18ms
     sleep_ms(20);
     uint last = 0;
     for(int i = 0; i < 3; i++) {
         wait_for_switch(DHT_PIN, last);
-        last = gpi_get(DHT_PIN);
+        last = gpio_get(DHT_PIN);
     }
     // Read 40 bits of data from DHT sensor
     for(int i = 0; i < 40; i++) {
         wait_for_switch(DHT_PIN, 0);
         int count = wait_for_switch(DHT_PIN, 1);
         if (count < 0) {
-            result->success = false;
             return;
         }
         uint signal = count > 20;
@@ -39,7 +38,6 @@ void read_from_dht(dht_reading *result) {
     // Verify checksum
     uint checksum = data[0] + data[1] + data[2] + data[3];
     if (checksum != data[4]) {
-        result->success = false;
         return;
     }
     else {
