@@ -20,6 +20,7 @@ void pico_net::run_tcp_client_test(void) {
     while (!state->complete) {
         /*
         */
+        printf("Polling...\n");
         cyw43_arch_poll();
         cyw43_arch_wait_for_work_until(make_timeout_time_ms(1000));
         //sleep_ms(2000);
