@@ -1,48 +1,49 @@
 #include "temp_sensor/pico_temp.h"
 
 
+int wait_for_switch(uint pin, uint previous) {
+    int count = 0;
+    while(gpi_get(pin) == previous) {
+        count++;
+        sleep_us(1);
+        if (count > 255) return -1;
+    }
+    return count;
+}
 void read_from_dht(dht_reading *result) {
     int data[5] = {0, 0, 0, 0, 0};
-    uint last = 1;
     uint j = 0;
 
+    // Send start signal to DHT sensor
     gpio_set_dir(DHT_PIN, GPIO_OUT);
-    gpio_put(DHT_PIN, 0);
+    gpi_put(DHT_PIN, 0);
+    //wait at least 18ms
     sleep_ms(20);
-    gpio_set_dir(DHT_PIN, GPIO_IN);
-
-    for (uint i = 0; i < MAX_TIMINGS; i++) {
-        uint count = 0;
-        while (gpio_get(DHT_PIN) == last) {
-            count++;
-            sleep_us(1);
-            if (count == 255) break;
-        }
-        last = gpio_get(DHT_PIN);
-        if (count == 255) break;
-
-        if ((i >= 4) && (i % 2 == 0)) {
-            data[j / 8] <<= 1;
-            if (count > 16) data[j / 8] |= 1;
-            j++;
-        }
+    uint last = 0;
+    for(int i = 0; i < 3; i++) {
+        wait_for_switch(DHT_PIN, last);
+        last = gpi_get(DHT_PIN);
     }
-
-    if ((j >= 40) && (data[4] == ((data[0] + data[1] + data[2] + data[3]) & 0xFF))) {
-        result->humidity = (float) ((data[0] << 8) + data[1]) / 10;
-        if (result->humidity > 100) {
-            result->humidity = data[0];
+    // Read 40 bits of data from DHT sensor
+    for(int i = 0; i < 40; i++) {
+        wait_for_switch(DHT_PIN, 0);
+        int count = wait_for_switch(DHT_PIN, 1);
+        if (count < 0) {
+            result->success = false;
+            return;
         }
-        result->temp_celsius = (float) (((data[2] & 0x7F) << 8) + data[3]) / 10;
-        if (result->temp_celsius > 125) {
-            result->temp_celsius = data[2];
-        }
-        if (data[2] & 0x80) {
-            result->temp_celsius = -result->temp_celsius;
-        }
-    } 
+        uint signal = count > 20;
+        data[i / 8] <<= 1;
+        data[i / 8] |= signal;
+    }
+    // Verify checksum
+    uint checksum = data[0] + data[1] + data[2] + data[3];
+    if (checksum != data[4]) {
+        result->success = false;
+        return;
+    }
     else {
-        printf("Bad data\n");
+        printf("Checksum valid\n");
     }
 }
 

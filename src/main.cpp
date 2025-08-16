@@ -19,11 +19,6 @@ void pico_net::run_tcp_client_test(void) {
     }
     while (!state->complete) {
         /*
-        dht_reading reading;
-        read_from_dht(&reading);
-        float fahrenheit = (reading.temp_celsius * 9 / 5) + 32;
-        printf("Humidity = %.1f%%, Temperature = %.1fC (%.1fF)\n",
-               reading.humidity, reading.temp_celsius, fahrenheit);
         */
         cyw43_arch_poll();
         cyw43_arch_wait_for_work_until(make_timeout_time_ms(1000));
@@ -49,6 +44,7 @@ int main() {
 
     greeter::Greeter greeter("RICKY");
     printf("{}\n", greeter.greet(langIt->second));
+    /*
 
     if (cyw43_arch_init()) {
         printf("failed to initialise\n");
@@ -66,5 +62,12 @@ int main() {
     }
     pico_net::run_tcp_client_test();
     cyw43_arch_deinit();
+    */
+
+    dht_reading reading;
+    read_from_dht(&reading);
+    //float fahrenheit = (reading.temp_celsius * 9 / 5) + 32;
+    //printf("Humidity = %.1f%%, Temperature = %.1fC (%.1fF)\n",
+    //       reading.humidity, reading.temp_celsius, fahrenheit);
     return 0;
 }
