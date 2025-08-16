@@ -19,8 +19,8 @@ void read_from_dht(dht_reading *result) {
     gpio_put(DHT_PIN, 0);
     //wait at least 18ms
     sleep_ms(20);
-    uint last = 0;
-    for(int i = 0; i < 3; i++) {
+    uint last = 1;
+    for(int i = 0; i < 4; i++) {
         wait_for_switch(DHT_PIN, last);
         last = gpio_get(DHT_PIN);
     }
@@ -36,12 +36,15 @@ void read_from_dht(dht_reading *result) {
         data[i / 8] |= signal;
     }
     // Verify checksum
-    uint checksum = data[0] + data[1] + data[2] + data[3];
+    uint checksum = (data[0] + data[1] + data[2] + data[3]) & 0xFF; // Last 8 bits
     if (checksum != data[4]) {
+        printf("Checksum invalid\n");
         return;
     }
     else {
         printf("Checksum valid\n");
+        result->temp_celsius = (float) (((data[2] & 0x7F) << 8) + data[3]) / 10;
+        printf("Temp: %.1fC\n", result->temp_celsius);
     }
 }
 

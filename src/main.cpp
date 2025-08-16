@@ -65,8 +65,11 @@ int main() {
     cyw43_arch_deinit();
     */
 
-    dht_reading reading;
-    read_from_dht(&reading);
+    while(true) {
+        dht_reading reading;
+        read_from_dht(&reading);
+        sleep_ms(2000);
+    }
     //float fahrenheit = (reading.temp_celsius * 9 / 5) + 32;
     //printf("Humidity = %.1f%%, Temperature = %.1fC (%.1fF)\n",
     //       reading.humidity, reading.temp_celsius, fahrenheit);
