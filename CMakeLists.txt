@@ -1,12 +1,6 @@
 cmake_minimum_required(VERSION 3.14...3.22)
 
 
-# Initialize pico-sdk from GIT
-# (note this can come from environment, CMake cache etc)
-set(WIFI_SSID $ENV{WIFI_SSID})
-set(WIFI_PASSWORD $ENV{WIFI_PASSWORD})
-set(TEST_TCP_SERVER_IP $ENV{TEST_TCP_SERVER_IP})
-
 set(PICO_SDK_FETCH_FROM_GIT on)
 
 include(cmake/CPM.cmake)
@@ -36,15 +30,15 @@ file(GLOB_RECURSE sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 add_executable(${PROJECT_NAME} ${sources} ${headers})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    WIFI_SSID=\"${WIFI_SSID}\"
-    WIFI_PASSWORD=\"${WIFI_PASSWORD}\"
-    TEST_TCP_SERVER_IP=\"${TEST_TCP_SERVER_IP}\"
     PICO_ENTER_USB_BOOT_ON_EXIT=1
 )
 
 target_link_libraries(${PROJECT_NAME}
     pico_stdlib
-    pico_cyw43_arch_lwip_poll
+    pico_unique_id 
+    tinyusb_device 
+    tinyusb_board
+
 )
 
 target_include_directories(
