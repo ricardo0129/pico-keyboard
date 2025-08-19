@@ -38,7 +38,8 @@ target_link_libraries(${PROJECT_NAME}
     pico_unique_id 
     tinyusb_device 
     tinyusb_board
-
+    pico_i2c_slave
+    hardware_i2c
 )
 
 target_include_directories(
