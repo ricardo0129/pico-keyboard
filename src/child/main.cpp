@@ -1,7 +1,7 @@
 #include <unordered_map>
 #include <string.h>
 #include <time.h>
-#include "pico_net/mylib.h"
+#include "common/mylib.h"
 
 #include "pico/stdlib.h"
 
@@ -12,7 +12,7 @@
 #include "bsp/board_api.h"
 #include "tusb.h"
 
-#include "usb_descriptors.h"
+#include "common/usb_descriptors.h"
 
 /* Pinout
  * Bat  RGB
@@ -225,6 +225,11 @@ char left_layout[3][5] = {
     {'T', 'R', 'E', 'W', 'Q'},
     {'G', 'F', 'D', 'S', 'A'},
     {'B', 'V', 'C', 'X', 'Z'},
+};
+char right_layout[3][5] = {
+    {'Y', 'U', 'I', 'O', 'P'},
+    {'H', 'J', 'K', 'L', ';'},
+    {'N', 'M', ',', '.', '/'},
 };
 
 void hid_task(void);
