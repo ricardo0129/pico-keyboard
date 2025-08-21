@@ -37,6 +37,7 @@ target_include_directories(parent PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
 )
+
 target_include_directories(parent PUBLIC
     ${PROJECT_SOURCE_DIR}/include/common
     ${PROJECT_SOURCE_DIR}/include/parent
@@ -65,6 +66,11 @@ target_link_libraries(child
 target_include_directories(child PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/${PROJECT_NAME}-${PROJECT_VERSION}>
+)
+
+target_include_directories(child PUBLIC
+    ${PROJECT_SOURCE_DIR}/include/common
+    ${PROJECT_SOURCE_DIR}/include/child
 )
 
 pico_enable_stdio_usb(child 1)
