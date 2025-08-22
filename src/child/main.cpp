@@ -15,6 +15,14 @@
 #include "tusb.h"
 
 #include "common/usb_descriptors.h"
+#include "common/keyboard.h"
+
+#include <hardware/i2c.h>
+#include <pico/i2c_slave.h>
+#include <pico/stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include "common/circular_queue.h"
 
 /* Pinout
  * Bat  RGB
@@ -39,58 +47,40 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <hardware/i2c.h>
-#include <pico/i2c_slave.h>
-#include <pico/stdlib.h>
-#include <stdio.h>
-#include <string.h>
 
-static const uint I2C_CHILD_ADDRESS = 0x17;
-static const uint I2C_BAUDRATE = 100000; // 100 kHz
-
-// For this example, we run both the parent and child from the same board.
-// You'll need to wire pin GP4 to GP6 (SDA), and pin GP5 to GP7 (SCL).
-static const uint I2C_CHILD_SDA_PIN = PICO_DEFAULT_I2C_SDA_PIN; // 4
-static const uint I2C_CHILD_SCL_PIN = PICO_DEFAULT_I2C_SCL_PIN; // 5
+circular_queue txq;
+void process_key_press(bool is_pressed, uint64_t now, KeyState &key_state) {
+    if (is_pressed != key_state.is_pressed) {
+        key_state.is_pressed = is_pressed;
+        key_state.last_changed = now;
+        if (is_pressed) {
+            // Key pressed
+            txq.push('a');
+            printf("Key %c pressed\n");
+        } else {
+            // Key released
+            printf("Key %c released\n");
+        }
+    }
+}
 
 enum class State {
     RETURN_LENGTH,
     READ_REQUESTED_LENGTH,
     WRITE_REQUESTED_LENGTH
 };
-const int MAX_QUEUE_SIZE = 256;
-const int MAX_BUFFER_SIZE = 32;
-struct stack {
-    uint8_t data[256];
-    uint8_t head;
-    stack() : head(0) {
-    }
-    int push(uint8_t value) {
-        if(head >= MAX_QUEUE_SIZE) {
-            return -1; // stack is full
-        }
-        return data[head++] = value;
-    }
-    int pop() {
-        if(head <= 0) {
-            hard_assert(false, "Queue is empty");
-        }
-        return data[head--];
-    }
-    int size() {
-        return head;
-    }
-};
+
+static struct {
+    circular_queue mem; // memory stack
+    State current_state = State::RETURN_LENGTH;
+    uint8_t write_remaining = 0; // number of bytes remaining to be written
+} context;
+
 
 // The child implements a 256 byte memory. To write a series of bytes, the parent first
 // writes the memory address, followed by the data. The address is automatically incremented
 // for each byte transferred, looping back to 0 upon reaching the end. Reading is done
 // sequentially from the current memory address.
-static struct {
-    stack mem; // memory stack
-    State current_state = State::RETURN_LENGTH;
-    uint8_t write_remaining = 0; // number of bytes remaining to be written
-} context;
 
 // Our handler is called from the I2C ISR, so it must complete quickly. Blocking calls /
 // printing to stdio may interfere with interrupt handling.
@@ -157,68 +147,6 @@ static void setup_child() {
 const int LED_PIN = 17;
 
 
-struct KeyState {
-    bool is_pressed;
-    uint64_t last_changed;
-};
-
-struct KeyBoard {
-    int* row_to_pin;
-    int* col_to_pin;
-    int rows, cols;
-    std::vector<std::vector<char>> row_layout;
-    std::vector<std::vector<KeyState>> key_states;
-
-    KeyBoard(int* _row_to_pin, int* _col_to_pin,std::vector<std::vector<char>> row_layout,int _rows, int _cols) {
-        row_to_pin = _row_to_pin;
-        col_to_pin = _col_to_pin;
-        row_layout = row_layout;
-        rows = _rows;
-        cols = _cols;
-        uint64_t now = time_us_64();
-        bool is_pressed = false;
-        key_states.assign(rows, std::vector<KeyState>(cols, {.is_pressed = is_pressed, .last_changed = now}));
-    }
-
-    int cols_at_row(int row) {
-        if(row < 0 || row >= rows) {
-            return -1; // Invalid row
-        }
-        return row_layout[row].size();
-    }
-};
-
-void initalize_keyboard(KeyBoard& kb) {
-    for(int i = 0; i < kb.cols; i++) {
-        int pin = kb.col_to_pin[i];
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_IN);
-        gpio_pull_up(pin);
-    }
-    for(int i = 0; i < kb.rows; i++) {
-        int pin = kb.row_to_pin[i];
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_OUT);
-    }
-}
-
-void scan_keyboard(KeyBoard& kb) {
-    for(int i = 0; i < kb.rows; i++) {
-        gpio_put(kb.row_to_pin[i], 1); // Set the row pin high
-        sleep_ms(1); // Allow time for the signal to stabilize
-        for(int j = 0; j < kb.cols_at_row(i); j++) {
-            int col_pin = kb.col_to_pin[j];
-            uint64_t now = time_us_64();
-            bool is_pressed = !gpio_get(col_pin); // Active low
-            if(is_pressed != kb.key_states[i][j].is_pressed) {
-                kb.key_states[i][j].is_pressed = is_pressed;
-                kb.key_states[i][j].last_changed = now;
-                //printf("Key %c at (%d, %d) %s\n", kb.row_layout[i][j], i, j, is_pressed ? "pressed" : "released");
-            }
-        }
-        gpio_put(kb.row_to_pin[i], 0); // Set the row pin low
-    }
-}
 
 char left_layout[3][5] = {
     {'T', 'R', 'E', 'W', 'Q'},
@@ -267,7 +195,7 @@ int main() {
 
     while(true) {
         printf("Polling I2C child...\n");
-        scan_keyboard(kb_left);
+        scan_keyboard(kb_left, process_key_press);
         sleep_ms(10);
     }
     return 0;
