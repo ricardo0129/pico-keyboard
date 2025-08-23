@@ -17,6 +17,9 @@ struct circular_queue {
 
 };
 
+
+// Template implementations added here because of linker errors
+
 template<typename T>
 circular_queue<T>::circular_queue() : head(0), tail(0) {
 }

@@ -55,3 +55,4 @@ void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, KeyState&, uint8_t
         gpio_put(kb.row_to_pin[i], 0); // Set the row pin low
     }
 }
+

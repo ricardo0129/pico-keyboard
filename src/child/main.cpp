@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "common/circular_queue.h"
+#include "common/key_event.h"
 
 /* Pinout
  * Bat  RGB
@@ -61,9 +62,11 @@ enum class State {
 };
 
 static struct {
-    circular_queue<uint8_t> mem; // memory stack
+    circular_queue<KeyEvent> mem; // memory stack
     State current_state = State::RETURN_LENGTH;
     uint8_t write_remaining = 0; // number of bytes remaining to be written
+    uint8_t ready_buffer[MAX_BUFFER_SIZE];
+    uint8_t ready_length = 0;
 } context;
 
 
@@ -86,6 +89,7 @@ static void i2c_child_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
                 } 
                 else {
                     context.current_state = State::WRITE_REQUESTED_LENGTH;
+                    //we got the requested number of objects to write
                 }
             }
             else {
@@ -99,10 +103,18 @@ static void i2c_child_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
                 context.current_state = State::READ_REQUESTED_LENGTH;
             }
             else if(context.current_state == State::WRITE_REQUESTED_LENGTH) {
-                i2c_write_byte_raw(i2c, context.mem.pop());
-                context.write_remaining--;
-                if(context.write_remaining == 0) {
+                if(context.ready_length == 0) {
+                    //We need to fill the buffer
+                    serialize_key_event(context.mem.pop(), context.ready_buffer);
+                    context.ready_length = KEY_EVENT_SIZE;
+                    context.write_remaining--;
+                }
+                if(context.write_remaining < 0) {
                     context.current_state = State::RETURN_LENGTH;
+                } else {
+                    //We have data ready to send
+                    i2c_write_byte_raw(i2c, context.ready_buffer[KEY_EVEN_SIZE - context.ready_length]);
+                    context.ready_length--;
                 }
             }
             else {

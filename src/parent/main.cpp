@@ -44,6 +44,7 @@
 #include <pico/stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "common/key_event.h"
 
 uint8_t buf[MAX_BUFFER_SIZE];
 
@@ -136,11 +137,6 @@ void tud_suspend_cb(bool remote_wakeup_en) {
 void tud_resume_cb(void) {
 }
 
-struct KeyEvent {
-    bool is_pressed;
-    uint64_t timestamp;
-    uint8_t keycode;
-};
 
 int events_in_queue = 0;
 KeyEvent key_events[256];
