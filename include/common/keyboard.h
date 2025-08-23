@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <pico/stdlib.h>
 
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
+
 struct KeyState {
     bool is_pressed;
     uint64_t last_changed;
@@ -22,4 +25,6 @@ struct KeyBoard {
 
 void initalize_keyboard(KeyBoard& kb);
 
-void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, KeyState&));
+void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, KeyState&, uint8_t));
+
+#endif // KEYBOARD_H

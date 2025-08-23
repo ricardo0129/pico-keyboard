@@ -40,22 +40,12 @@
 */
 
 
-/*
- * Copyright (c) 2021 Valentin Milea <valentin.milea@gmail.com>
- * Copyright (c) 2023 Raspberry Pi (Trading) Ltd.
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
-
-circular_queue txq;
-void process_key_press(bool is_pressed, uint64_t now, KeyState &key_state) {
+void process_key_press(bool is_pressed, uint64_t now, KeyState &key_state, uint8_t keycode) {
     if (is_pressed != key_state.is_pressed) {
         key_state.is_pressed = is_pressed;
         key_state.last_changed = now;
         if (is_pressed) {
             // Key pressed
-            txq.push('a');
             printf("Key %c pressed\n");
         } else {
             // Key released
@@ -71,7 +61,7 @@ enum class State {
 };
 
 static struct {
-    circular_queue mem; // memory stack
+    circular_queue<uint8_t> mem; // memory stack
     State current_state = State::RETURN_LENGTH;
     uint8_t write_remaining = 0; // number of bytes remaining to be written
 } context;
@@ -144,28 +134,8 @@ static void setup_child() {
 
 
 
-const int LED_PIN = 17;
-
-
-
-char left_layout[3][5] = {
-    {'T', 'R', 'E', 'W', 'Q'},
-    {'G', 'F', 'D', 'S', 'A'},
-    {'B', 'V', 'C', 'X', 'Z'},
-};
-char right_layout[3][5] = {
-    {'Y', 'U', 'I', 'O', 'P'},
-    {'H', 'J', 'K', 'L', ';'},
-    {'N', 'M', ',', '.', '/'},
-};
-
-uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
- 
-
 int main() {
     stdio_init_all();
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
 
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
 #warning i2c / child_mem_i2c example requires a board with I2C pins

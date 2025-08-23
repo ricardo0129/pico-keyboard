@@ -33,7 +33,7 @@ void initalize_keyboard(KeyBoard& kb) {
     }
 }
 
-void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, KeyState&)) {
+void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, KeyState&, uint8_t)) {
     for(int i = 0; i < kb.rows; i++) {
         gpio_put(kb.row_to_pin[i], 1); // Set the row pin high
         sleep_ms(1); // Allow time for the signal to stabilize
@@ -41,7 +41,8 @@ void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, KeyState&)) {
             int col_pin = kb.col_to_pin[j];
             uint64_t now = time_us_64();
             bool is_pressed = !gpio_get(col_pin); // Active low
-            func(is_pressed, now, kb.key_states[i][j]); // Call the function with the key state
+            uint8_t keycode = kb.row_layout[i][j];
+            func(is_pressed, now, kb.key_states[i][j], keycode); // Call the function with the key state
             /*
             if(is_pressed != kb.key_states[i][j].is_pressed) {
                 kb.key_states[i][j].is_pressed = is_pressed;
