@@ -134,7 +134,7 @@ int main() {
 #endif
     int row_to_pin[4] = {22, 26, 27, 20};
     int col_to_pin[5] = {9, 8, 7, 6, 5};
-    KeyBoard kb_left(
+    KeyBoard kb_right(
         row_to_pin, 
         col_to_pin,
         right_layout_vec,
@@ -146,7 +146,7 @@ int main() {
 
     while(true) {
         printf("Polling I2C child...\n");
-        scan_keyboard(kb_left, process_key_press);
+        scan_keyboard(kb_right, process_key_press);
         sleep_ms(10);
     }
     return 0;

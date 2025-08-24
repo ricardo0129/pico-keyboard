@@ -13,6 +13,7 @@ struct circular_queue {
     circular_queue();
     bool push(T value);
     T pop();
+    const T& peek() const;
     uint32_t size();
 
 };
@@ -26,11 +27,12 @@ circular_queue<T>::circular_queue() : head(0), tail(0) {
 
 template<typename T>
 bool circular_queue<T>::push(T value) {
-    if((head + 1) % MAX_BUFFER_SIZE == tail) {
+    uint32_t next_tail = (tail + 1) % MAX_BUFFER_SIZE;
+    if(next_tail == head) {
         return false; // Queue is full
     }
     data[tail] = value;
-    tail = (tail + 1) % MAX_BUFFER_SIZE;
+    tail = next_tail;
     return true; // Successfully pushed
 }
 
@@ -42,6 +44,14 @@ T circular_queue<T>::pop() {
     T value = data[head];
     head = (head + 1) % MAX_BUFFER_SIZE;
     return value;
+}
+
+template<typename T>
+const T& circular_queue<T>::peek() const {
+    if(head == tail) {
+        hard_assert(false, "Queue is empty");
+    }
+    return data[head];
 }
 
 template<typename T>

@@ -21,23 +21,23 @@ void initalize_keyboard(KeyBoard& kb) {
         int pin = kb.col_to_pin[i];
         gpio_init(pin);
         gpio_set_dir(pin, GPIO_IN);
-        gpio_pull_up(pin);
     }
     for(int i = 0; i < kb.rows; i++) {
         int pin = kb.row_to_pin[i];
         gpio_init(pin);
         gpio_set_dir(pin, GPIO_OUT);
+        gpio_pull_down(pin);
     }
 }
 
 void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t)) {
-    for(int i = 0; i < kb.rows; i++) {
+    for(int i = 0; i < 3; i++) {
         gpio_put(kb.row_to_pin[i], 1); // Set the row pin high
         sleep_ms(1); // Allow time for the signal to stabilize
-        for(int j = 0; j < kb.cols_at_row(i); j++) {
+        for(int j = 0; j < 5; j++) {
             int col_pin = kb.col_to_pin[j];
             uint64_t now = time_us_64();
-            bool is_pressed = !gpio_get(col_pin); // Active low
+            bool is_pressed = gpio_get(col_pin); // Active low
             uint8_t keycode = kb.row_layout[i][j];
             func(is_pressed, now, keycode); // Call the function with the key state
             /*

@@ -21,8 +21,9 @@
 #include "common/keyboard_layout.h"
 #include <map>
 
-circular_queue<KeyEvent> key_event_queue;
+static circular_queue<KeyEvent> key_event_queue;
 std::map<uint8_t, KeyState> key_states;
+const int LED_PIN = 17;
 
 uint8_t buf[MAX_BUFFER_SIZE];
 
@@ -123,24 +124,47 @@ static void send_hid_report(uint8_t report_id) {
     // skip if hid is not ready yet
     if (!tud_hid_ready()) 
         return;
-    static bool changed = false;
+    bool changed = false;
     uint8_t keycode[MAX_KEY_COUNT] = { 0 };
     uint8_t key_count = 0;
     uint8_t modifier  = 0;
-    int num_events = std::min(key_event_queue.size(), (uint32_t)MAX_KEY_COUNT);
-    for(int i = 0; i < num_events; i++) {
-        KeyEvent event = key_event_queue.pop();
+    int queue_size = key_event_queue.size();
+    for(int i = 0; i < queue_size && i < MAX_KEY_COUNT; i++) {
+        const KeyEvent& event = key_event_queue.peek();
+        uint8_t current_modifier = 0;
+        if(conv_table[event.keycode][0]) {
+            current_modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
+        }
+        if(i == 0) {
+            modifier = current_modifier;
+        }
+        else if(current_modifier != modifier) {
+            //Modifier has changed, stop processing events
+            break;
+        }
+        key_event_queue.pop();
         KeyState& state = key_states[event.keycode];
+        gpio_put(LED_PIN, 1);
         if(state.is_pressed != event.is_pressed) {
+            gpio_put(LED_PIN, 0);
             //State of key has changed
             if(event.is_pressed) {
                 //Key is pressed
+                keycode[key_count++] = conv_table[event.keycode][1];
             }
             changed = true;
         }
         //Update the state
         state.is_pressed = event.is_pressed;
         state.last_changed = event.timestamp;
+    }
+    if(changed) {
+        if(key_count) {
+            tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier, keycode);
+        }
+        else {
+            tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
+        }
     }
     /*
     if(state != key_states[i][j].is_pressed && now - key_states[i][j].last_changed > DEBOUNCE_US) {
@@ -158,14 +182,6 @@ static void send_hid_report(uint8_t report_id) {
         if( conv_table[chr][0] ) modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
         keycode[key_count++] = conv_table[chr][1];
         changed = true;
-    }
-    if(changed) {
-        if(key_count) {
-            tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier, keycode);
-        }
-        else {
-            tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
-        }
     }
     */
 
@@ -257,37 +273,38 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 
 int main() {
     stdio_init_all();
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    for(int i = 0; i < 256; i++) {
+        key_states[i] = {
+            .is_pressed = false,
+            .last_changed = 0
+        };
+    }
 
-    int row_to_pin[4] = {27, 28, 26, 22};
+    int row_to_pin[3] = {27, 28, 26};//, 22};
     int col_to_pin[5] = {21, 4, 5, 6, 7};
     KeyBoard kb_left(
         row_to_pin, 
         col_to_pin,
         left_layout_vec,
-        4, // rows
+        3, // rows
         5  // cols
     );
     printf("Keyboard left initialized\n");
 
     initalize_keyboard(kb_left);
-    initalize_parent();
+    //initalize_parent();
 
 
     init_tusb();
 
     while(1) {
         tud_task(); // tinyusb device task
-        run_parent();
+        scan_keyboard(kb_left, process_key_press);
+        //run_parent();
         hid_task();
         sleep_ms(10); // sleep for 10 ms
-    }
-
-
-
-    while(true) {
-        printf("Polling I2C child...\n");
-        scan_keyboard(kb_left, process_key_press);
-        sleep_ms(10);
     }
     return 0;
 }
