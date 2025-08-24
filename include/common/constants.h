@@ -20,3 +20,19 @@ const int MAX_KEY_COUNT = 6;
 const uint64_t DEBOUNCE_US = 5000;
 const uint64_t KEY_HOLD_US = 300000; // 300ms
 #endif // CONSTANTS_H
+
+
+/* Pinout
+ * Bat  RGB
+ * GND  DATA
+ * RST  GND
+ * VCC  GND
+ * LR   SDA
+ * R1   SCL
+ * R0   C1
+ * R2   C2
+ * R3   C3
+ * E2A  C4
+ * E2B  E1B
+ * C0   E1A
+*/

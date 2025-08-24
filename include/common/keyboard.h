@@ -15,7 +15,6 @@ struct KeyBoard {
     int* col_to_pin;
     int rows, cols;
     std::vector<std::vector<char>> row_layout;
-    std::vector<std::vector<KeyState>> key_states;
 
     KeyBoard(int* _row_to_pin, int* _col_to_pin,std::vector<std::vector<char>> row_layout,int _rows, int _cols);
 
@@ -25,6 +24,6 @@ struct KeyBoard {
 
 void initalize_keyboard(KeyBoard& kb);
 
-void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, KeyState&, uint8_t));
+void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t));
 
 #endif // KEYBOARD_H

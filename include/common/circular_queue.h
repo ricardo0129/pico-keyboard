@@ -39,7 +39,7 @@ T circular_queue<T>::pop() {
     if(head == tail) {
         hard_assert(false, "Queue is empty");
     }
-    uint8_t value = data[head];
+    T value = data[head];
     head = (head + 1) % MAX_BUFFER_SIZE;
     return value;
 }

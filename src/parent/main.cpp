@@ -2,63 +2,39 @@
 #include <string.h>
 #include <time.h>
 #include "common/mylib.h"
-
 #include "pico/stdlib.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
 #include "bsp/board_api.h"
 #include "tusb.h"
-
 #include "common/usb_descriptors.h"
 #include "common/constants.h"
 #include "common/keyboard.h"
-
-/* Pinout
- * Bat  RGB
- * GND  DATA
- * RST  GND
- * VCC  GND
- * LR   SDA
- * R1   SCL
- * R0   C1
- * R2   C2
- * R3   C3
- * E2A  C4
- * E2B  E1B
- * C0   E1A
-*/
-
-
-/*
- * Copyright (c) 2021 Valentin Milea <valentin.milea@gmail.com>
- * Copyright (c) 2023 Raspberry Pi (Trading) Ltd.
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include <hardware/i2c.h>
 #include <pico/i2c_slave.h>
 #include <pico/stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "common/key_event.h"
+#include "common/circular_queue.h"
+#include "common/keyboard_layout.h"
+#include <map>
+
+circular_queue<KeyEvent> key_event_queue;
+std::map<uint8_t, KeyState> key_states;
 
 uint8_t buf[MAX_BUFFER_SIZE];
 
-void process_key_press(bool is_pressed, uint64_t now, KeyState &key_state, uint8_t keycode) {
-    if (is_pressed != key_state.is_pressed) {
-        key_state.is_pressed = is_pressed;
-        key_state.last_changed = now;
-        if (is_pressed) {
-            // Key pressed
-        } else {
-            // Key released
-        }
-    }
+void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode) {
+    KeyEvent event = {
+        .is_pressed = is_pressed,
+        .timestamp = now,
+        .keycode = keycode
+    };
+    key_event_queue.push(event);
 }
+
 
 void initalize_parent() {
     gpio_init(I2C_PARENT_SDA_PIN);
@@ -87,8 +63,13 @@ static void run_parent() {
         i2c_write_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, true);
         printf("Reading %d bytes from child...\n", buf[0]);
         //read all the requested bytes
-        count = i2c_read_blocking(i2c1, I2C_CHILD_ADDRESS, buf, requested_length, false);
-        hard_assert(count == requested_length, "Expected to read %d bytes, got %d", requested_length, count);
+        for(int i = 0; i < requested_length; i++) {
+            count = i2c_read_blocking(i2c1, I2C_CHILD_ADDRESS, buf, KEY_EVENT_SIZE, false);
+            hard_assert(count == requested_length, "Expected to read %d bytes, got %d", requested_length, count);
+            KeyEvent event;
+            deserialize_key_event(buf, event);
+            key_event_queue.push(event);
+        }
     }
     else {
         printf("Requested length is zero, nothing to write\n");
@@ -138,10 +119,6 @@ void tud_resume_cb(void) {
 }
 
 
-int events_in_queue = 0;
-KeyEvent key_events[256];
-
-
 static void send_hid_report(uint8_t report_id) {
     // skip if hid is not ready yet
     if (!tud_hid_ready()) 
@@ -150,6 +127,21 @@ static void send_hid_report(uint8_t report_id) {
     uint8_t keycode[MAX_KEY_COUNT] = { 0 };
     uint8_t key_count = 0;
     uint8_t modifier  = 0;
+    int num_events = std::min(key_event_queue.size(), (uint32_t)MAX_KEY_COUNT);
+    for(int i = 0; i < num_events; i++) {
+        KeyEvent event = key_event_queue.pop();
+        KeyState& state = key_states[event.keycode];
+        if(state.is_pressed != event.is_pressed) {
+            //State of key has changed
+            if(event.is_pressed) {
+                //Key is pressed
+            }
+            changed = true;
+        }
+        //Update the state
+        state.is_pressed = event.is_pressed;
+        state.last_changed = event.timestamp;
+    }
     /*
     if(state != key_states[i][j].is_pressed && now - key_states[i][j].last_changed > DEBOUNCE_US) {
         key_states[i][j].is_pressed = state;
@@ -266,20 +258,36 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 int main() {
     stdio_init_all();
 
-#if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
-#warning i2c / child_mem_i2c example requires a board with I2C pins
-    puts("Default I2C pins were not defined");
-    return 0;
-#else
-    run_parent();
-#endif
+    int row_to_pin[4] = {27, 28, 26, 22};
+    int col_to_pin[5] = {21, 4, 5, 6, 7};
+    KeyBoard kb_left(
+        row_to_pin, 
+        col_to_pin,
+        left_layout_vec,
+        4, // rows
+        5  // cols
+    );
+    printf("Keyboard left initialized\n");
+
+    initalize_keyboard(kb_left);
+    initalize_parent();
+
 
     init_tusb();
 
     while(1) {
         tud_task(); // tinyusb device task
+        run_parent();
         hid_task();
         sleep_ms(10); // sleep for 10 ms
+    }
+
+
+
+    while(true) {
+        printf("Polling I2C child...\n");
+        scan_keyboard(kb_left, process_key_press);
+        sleep_ms(10);
     }
     return 0;
 }

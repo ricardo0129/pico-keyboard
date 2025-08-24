@@ -23,37 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "common/circular_queue.h"
+#include "common/keyboard_layout.h"
 #include "common/key_event.h"
-
-/* Pinout
- * Bat  RGB
- * GND  DATA
- * RST  GND
- * VCC  GND
- * LR   SDA
- * R1   SCL
- * R0   C1
- * R2   C2
- * R3   C3
- * E2A  C4
- * E2B  E1B
- * C0   E1A
-*/
-
-
-void process_key_press(bool is_pressed, uint64_t now, KeyState &key_state, uint8_t keycode) {
-    if (is_pressed != key_state.is_pressed) {
-        key_state.is_pressed = is_pressed;
-        key_state.last_changed = now;
-        if (is_pressed) {
-            // Key pressed
-            printf("Key %c pressed\n");
-        } else {
-            // Key released
-            printf("Key %c released\n");
-        }
-    }
-}
 
 enum class State {
     RETURN_LENGTH,
@@ -69,11 +40,15 @@ static struct {
     uint8_t ready_length = 0;
 } context;
 
+void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode) {
+    KeyEvent event = {
+        .is_pressed = is_pressed,
+        .timestamp = now,
+        .keycode = keycode
+    };
+    context.mem.push(event);
+}
 
-// The child implements a 256 byte memory. To write a series of bytes, the parent first
-// writes the memory address, followed by the data. The address is automatically incremented
-// for each byte transferred, looping back to 0 upon reaching the end. Reading is done
-// sequentially from the current memory address.
 
 // Our handler is called from the I2C ISR, so it must complete quickly. Blocking calls /
 // printing to stdio may interfere with interrupt handling.
@@ -113,7 +88,7 @@ static void i2c_child_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
                     context.current_state = State::RETURN_LENGTH;
                 } else {
                     //We have data ready to send
-                    i2c_write_byte_raw(i2c, context.ready_buffer[KEY_EVEN_SIZE - context.ready_length]);
+                    i2c_write_byte_raw(i2c, context.ready_buffer[KEY_EVENT_SIZE - context.ready_length]);
                     context.ready_length--;
                 }
             }
@@ -157,18 +132,12 @@ int main() {
     puts("\nI2C child example");
     setup_child();
 #endif
-    int row_to_pin[4] = {27, 28, 26, 22};
-    int col_to_pin[5] = {21, 4, 5, 6, 7};
-    std::vector<std::vector<char>> left_layout_vec = {
-        {'T', 'R', 'E', 'W', 'Q'},
-        {'G', 'F', 'D', 'S', 'A'},
-        {'B', 'V', 'C', 'X', 'Z'},
-        {' ', 'X'}
-    };
+    int row_to_pin[4] = {22, 26, 27, 20};
+    int col_to_pin[5] = {9, 8, 7, 6, 5};
     KeyBoard kb_left(
         row_to_pin, 
         col_to_pin,
-        left_layout_vec,
+        right_layout_vec,
         4, // rows
         5  // cols
     );

@@ -5,7 +5,7 @@ struct KeyEvent {
     uint8_t keycode;
 };
 
-void seralize_key_event(const KeyEvent& event, uint8_t* buffer) {
+void serialize_key_event(const KeyEvent& event, uint8_t* buffer) {
     buffer[0] = event.is_pressed ? 1 : 0;
     for (int i = 0; i < 8; i++) {
         buffer[i + 1] = (event.timestamp >> (i * 8)) & 0xFF;
