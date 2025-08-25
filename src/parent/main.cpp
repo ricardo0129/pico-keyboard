@@ -21,6 +21,8 @@
 #include "common/keyboard_layout.h"
 #include <map>
 
+uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
+
 static circular_queue<KeyEvent> key_event_queue;
 std::map<uint8_t, KeyState> key_states;
 const int LED_PIN = 17;
@@ -50,10 +52,12 @@ void initalize_parent() {
     i2c_init(i2c1, I2C_BAUDRATE);
 }
 
-static void run_parent() {
+void run_parent() {
     int count = i2c_read_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, true);
     if (count < 0) {
         puts("Couldn't read from child, please check your wiring!");
+        gpio_put(LED_PIN, 1);
+        hard_assert(false, "I2C read error");
         return;
     }
     hard_assert(count == 1, "Expected to read 1 byte");
@@ -61,6 +65,7 @@ static void run_parent() {
     hard_assert(requested_length <= MAX_BUFFER_SIZE, "Requested length exceeds buffer size");
     printf("Requesting %d bytes from child...\n", requested_length);
     if(requested_length > 0) {
+        gpio_put(LED_PIN, 1);
         i2c_write_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, true);
         printf("Reading %d bytes from child...\n", buf[0]);
         //read all the requested bytes
@@ -129,8 +134,14 @@ static void send_hid_report(uint8_t report_id) {
     uint8_t key_count = 0;
     uint8_t modifier  = 0;
     int queue_size = key_event_queue.size();
-    for(int i = 0; i < queue_size && i < MAX_KEY_COUNT; i++) {
+
+    for(int i = 0; i < queue_size && key_count < MAX_KEY_COUNT; i++) {
         const KeyEvent& event = key_event_queue.peek();
+        KeyState& state = key_states[event.keycode];
+        if(state.is_pressed == event.is_pressed) {
+            key_event_queue.pop();
+            continue;
+        }
         uint8_t current_modifier = 0;
         if(conv_table[event.keycode][0]) {
             current_modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
@@ -143,10 +154,7 @@ static void send_hid_report(uint8_t report_id) {
             break;
         }
         key_event_queue.pop();
-        KeyState& state = key_states[event.keycode];
-        gpio_put(LED_PIN, 1);
         if(state.is_pressed != event.is_pressed) {
-            gpio_put(LED_PIN, 0);
             //State of key has changed
             if(event.is_pressed) {
                 //Key is pressed
@@ -282,19 +290,23 @@ int main() {
         };
     }
 
-    int row_to_pin[3] = {27, 28, 26};//, 22};
+    int row_to_pin[4] = {27, 28, 26, 22};
     int col_to_pin[5] = {21, 4, 5, 6, 7};
     KeyBoard kb_left(
         row_to_pin, 
         col_to_pin,
         left_layout_vec,
-        3, // rows
+        4, // rows
         5  // cols
     );
+    hard_assert(kb_left.rows == 4, "Left keyboard rows should be 4");
+    hard_assert(kb_left.cols == 5, "Left keyboard cols should be 5");
+    hard_assert(kb_left.cols_at_row(0) == 5, "Left keyboard row 0 should have 5 cols");
+    hard_assert(kb_left.row_layout[0][0] == 'T', "Left keyboard row 0 col 0 should be Q");
     printf("Keyboard left initialized\n");
 
     initalize_keyboard(kb_left);
-    //initalize_parent();
+    initalize_parent();
 
 
     init_tusb();
@@ -302,7 +314,7 @@ int main() {
     while(1) {
         tud_task(); // tinyusb device task
         scan_keyboard(kb_left, process_key_press);
-        //run_parent();
+        run_parent();
         hid_task();
         sleep_ms(10); // sleep for 10 ms
     }

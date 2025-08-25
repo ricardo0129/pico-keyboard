@@ -26,6 +26,8 @@
 #include "common/keyboard_layout.h"
 #include "common/key_event.h"
 
+const int LED_PIN = 17;
+
 enum class State {
     RETURN_LENGTH,
     READ_REQUESTED_LENGTH,
@@ -38,6 +40,7 @@ static struct {
     uint8_t write_remaining = 0; // number of bytes remaining to be written
     uint8_t ready_buffer[MAX_BUFFER_SIZE];
     uint8_t ready_length = 0;
+    bool debug_flag = false;
 } context;
 
 void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode) {
@@ -47,6 +50,12 @@ void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode) {
         .keycode = keycode
     };
     context.mem.push(event);
+    if(is_pressed && context.mem.size() > 0 && context.debug_flag) {
+        gpio_put(LED_PIN, 1);
+        sleep_ms(100);
+        gpio_put(LED_PIN, 0);
+        sleep_ms(100);
+    }
 }
 
 
@@ -75,22 +84,24 @@ static void i2c_child_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
             if(context.current_state == State::RETURN_LENGTH) {
                 // Master is requestion the size of the memory
                 i2c_write_byte_raw(i2c, context.mem.size());
+                context.debug_flag = true;
                 context.current_state = State::READ_REQUESTED_LENGTH;
             }
             else if(context.current_state == State::WRITE_REQUESTED_LENGTH) {
                 if(context.ready_length == 0) {
+                    if(context.write_remaining == 0) {
+                        //We are done writing
+                        context.current_state = State::RETURN_LENGTH;
+                        break;
+                    }
                     //We need to fill the buffer
                     serialize_key_event(context.mem.pop(), context.ready_buffer);
                     context.ready_length = KEY_EVENT_SIZE;
                     context.write_remaining--;
                 }
-                if(context.write_remaining < 0) {
-                    context.current_state = State::RETURN_LENGTH;
-                } else {
-                    //We have data ready to send
-                    i2c_write_byte_raw(i2c, context.ready_buffer[KEY_EVENT_SIZE - context.ready_length]);
-                    context.ready_length--;
-                }
+                //We have data ready to send
+                i2c_write_byte_raw(i2c, context.ready_buffer[KEY_EVENT_SIZE - context.ready_length]);
+                context.ready_length--;
             }
             else {
                 // This should never happen
@@ -123,6 +134,8 @@ static void setup_child() {
 
 int main() {
     stdio_init_all();
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
 
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
 #warning i2c / child_mem_i2c example requires a board with I2C pins
@@ -141,6 +154,7 @@ int main() {
         4, // rows
         5  // cols
     );
+    initalize_keyboard(kb_right);
     printf("Keyboard left initialized\n");
 
 
