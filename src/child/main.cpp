@@ -25,6 +25,7 @@
 #include "common/circular_queue.h"
 #include "common/keyboard_layout.h"
 #include "common/key_event.h"
+#include "common/communication.h"
 
 const int LED_PIN = 17;
 
@@ -116,24 +117,32 @@ static void i2c_child_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
     }
 }
 
-static void setup_child() {
-    gpio_init(I2C_CHILD_SDA_PIN);
-    gpio_set_function(I2C_CHILD_SDA_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_CHILD_SDA_PIN);
-
-    gpio_init(I2C_CHILD_SCL_PIN);
-    gpio_set_function(I2C_CHILD_SCL_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_CHILD_SCL_PIN);
-
-    i2c_init(i2c0, I2C_BAUDRATE);
-    // configure I2C0 for child mode
-    i2c_slave_init(i2c0, I2C_CHILD_ADDRESS, &i2c_child_handler);
+void initialize_uart() {
+    // Initialize UART at 115200 baud
+    uart_init(UART_ID, 115200);
+    // Set GPIO functions for UART
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 }
-
-
 
 int main() {
     stdio_init_all();
+    printf("Starting UART test...\n");
+    printf("Initializing UART...\n");
+    initialize_uart();
+    KeyEvent event = {
+        .is_pressed = true,
+        .timestamp = 123456789,
+        .keycode = 'A'
+    };
+    uint8_t buf[KEY_EVENT_SIZE];
+    serialize_key_event(event, buf);
+    uart_write_blocking(UART_ID, buf, KEY_EVENT_SIZE);
+    printf("Original KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", event.is_pressed, event.timestamp, event.keycode);
+    for(int i = 0; i < KEY_EVENT_SIZE; i++) {
+        printf("Byte %d: sent=0x%02X\n", i, buf[i]);
+    }
+    /*
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
@@ -163,5 +172,6 @@ int main() {
         scan_keyboard(kb_right, process_key_press);
         sleep_ms(10);
     }
+    */
     return 0;
 }

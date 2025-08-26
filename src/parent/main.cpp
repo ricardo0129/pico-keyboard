@@ -20,6 +20,10 @@
 #include "common/circular_queue.h"
 #include "common/keyboard_layout.h"
 #include <map>
+#include "pico/stdlib.h"
+#include "hardware/uart.h"
+#include "common/communication.h"
+
 
 uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
 
@@ -39,20 +43,16 @@ void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode) {
 }
 
 
-void initalize_parent() {
-    gpio_init(I2C_PARENT_SDA_PIN);
-    gpio_set_function(I2C_PARENT_SDA_PIN, GPIO_FUNC_I2C);
-    // pull-ups are already active on child side, this is just a fail-safe in case the wiring is faulty
-    gpio_pull_up(I2C_PARENT_SDA_PIN);
-
-    gpio_init(I2C_PARENT_SCL_PIN);
-    gpio_set_function(I2C_PARENT_SCL_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(I2C_PARENT_SCL_PIN);
-
-    i2c_init(i2c1, I2C_BAUDRATE);
+void initialize_uart() {
+    // Initialize UART at 115200 baud
+    uart_init(UART_ID, 115200);
+    // Set GPIO functions for UART
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 }
 
 void run_parent() {
+    /*
     int count = i2c_read_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, true);
     if (count < 0) {
         puts("Couldn't read from child, please check your wiring!");
@@ -82,6 +82,8 @@ void run_parent() {
         i2c_write_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, false);
         printf("Done writing\n");
     }
+    */
+    
 }
 
 
@@ -279,8 +281,24 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
     */
 }
 
+
 int main() {
     stdio_init_all();
+    printf("Starting UART test...\n");
+    sleep_ms(10000); //wait for me to plug both
+    printf("Initializing UART...\n");
+    initialize_uart();
+
+    uint8_t recv_buf[KEY_EVENT_SIZE];
+    read_from_uart(UART_ID, recv_buf, KEY_EVENT_SIZE);
+    KeyEvent recv_event;
+    deserialize_key_event(recv_buf, recv_event);
+    printf("Received KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", recv_event.is_pressed, recv_event.timestamp, recv_event.keycode);
+    for(int i = 0; i < KEY_EVENT_SIZE; i++) {
+        printf("Byte %d: received=0x%02X\n", i, recv_buf[i]);
+    }
+
+    /*
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
     for(int i = 0; i < 256; i++) {
@@ -318,5 +336,6 @@ int main() {
         hid_task();
         sleep_ms(10); // sleep for 10 ms
     }
+    */
     return 0;
 }
