@@ -28,6 +28,9 @@
 #include "common/communication.h"
 
 const int LED_PIN = 17;
+#define UART_ID uart1
+#define UART_TX_PIN 4
+#define UART_RX_PIN 5
 
 enum class State {
     RETURN_LENGTH,
@@ -125,8 +128,13 @@ void initialize_uart() {
     gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 }
 
+
 int main() {
     stdio_init_all();
+    const int LED_PIN = 17;
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+
     printf("Starting UART test...\n");
     printf("Initializing UART...\n");
     initialize_uart();
@@ -137,10 +145,18 @@ int main() {
     };
     uint8_t buf[KEY_EVENT_SIZE];
     serialize_key_event(event, buf);
+    gpio_put(LED_PIN, 1);
+    uart_puts(UART_ID, "Sending KeyEvent over UART...\n");
     uart_write_blocking(UART_ID, buf, KEY_EVENT_SIZE);
     printf("Original KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", event.is_pressed, event.timestamp, event.keycode);
     for(int i = 0; i < KEY_EVENT_SIZE; i++) {
         printf("Byte %d: sent=0x%02X\n", i, buf[i]);
+    }
+    while(true) {
+        gpio_put(LED_PIN, 1);
+        sleep_ms(100);
+        gpio_put(LED_PIN, 0);
+        sleep_ms(100);
     }
     /*
     gpio_init(LED_PIN);

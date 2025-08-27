@@ -24,6 +24,10 @@
 #include "hardware/uart.h"
 #include "common/communication.h"
 
+#define UART_ID uart1
+#define UART_TX_PIN 4
+#define UART_RX_PIN 5
+
 
 uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
 
@@ -43,13 +47,6 @@ void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode) {
 }
 
 
-void initialize_uart() {
-    // Initialize UART at 115200 baud
-    uart_init(UART_ID, 115200);
-    // Set GPIO functions for UART
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
-}
 
 void run_parent() {
     /*
@@ -282,10 +279,17 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 }
 
 
+void initialize_uart() {
+    // Initialize UART at 115200 baud
+    uart_init(UART_ID, 115200);
+    // Set GPIO functions for UART
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+}
+
 int main() {
     stdio_init_all();
     printf("Starting UART test...\n");
-    sleep_ms(10000); //wait for me to plug both
     printf("Initializing UART...\n");
     initialize_uart();
 
