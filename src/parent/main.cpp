@@ -11,8 +11,6 @@
 #include "common/usb_descriptors.h"
 #include "common/constants.h"
 #include "common/keyboard.h"
-#include <hardware/i2c.h>
-#include <pico/i2c_slave.h>
 #include <pico/stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,10 +21,8 @@
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 #include "common/communication.h"
+#include "common/proto.h"
 
-#define UART_ID uart1
-#define UART_TX_PIN 4
-#define UART_RX_PIN 5
 
 
 uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
@@ -80,7 +76,26 @@ void run_parent() {
         printf("Done writing\n");
     }
     */
-    
+    uint8_t buf[KEY_EVENT_SIZE];
+    bool valid = read_from_uart(UART_ID, buf, KEY_EVENT_SIZE);
+    if(!valid) {
+        //Timeout reading from UART
+        return;
+    }
+    uint8_t requested_length = buf[0];
+    if(requested_length > 0) {
+        KeyEvent event;
+        for(int i = 0; i < requested_length; i++) {
+            valid = read_from_uart(UART_ID, buf, KEY_EVENT_SIZE);
+            if(!valid) {
+                //Timeout reading from UART
+                return;
+            }
+            deserialize_key_event(buf, event);
+            key_event_queue.push(event);
+        }
+    }
+
 }
 
 
@@ -289,32 +304,22 @@ void initialize_uart() {
 
 int main() {
     stdio_init_all();
-    printf("Starting UART test...\n");
-    printf("Initializing UART...\n");
     initialize_uart();
 
-    KeyEvent expected_event = {
-        .is_pressed = true,
-        .timestamp = 123456789,
-        .keycode = 'A'
-    };
-    uint8_t send_buf[KEY_EVENT_SIZE];
-    serialize_key_event(expected_event, send_buf);
+    uart_init(UART_ID, BAUD);
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
-    uint8_t recv_buf[KEY_EVENT_SIZE];
+
+    frame_t tx, rx;
+    uint8_t seq = 0;
+    proto_encode(&tx, (uint8_t *)"Hello, World!", TYPE_DATA, 13, seq++);
+    send_frame(&tx);
     while(true) {
-        bool valid = read_from_uart(UART_ID, recv_buf, KEY_EVENT_SIZE);
-        if(!valid) {
-            printf("Timeout reading from UART\n");
-            continue;
+        if(recv_frame(&rx)) {
+            rx.data[rx.len] = '\0'; // Null-terminate the received data
+            printf("Got frame: seq=%d, len=%d, data=%s", rx.seq, rx.len, rx.data);
         }
-        KeyEvent recv_event;
-        deserialize_key_event(recv_buf, recv_event);
-        printf("Received KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", recv_event.is_pressed, recv_event.timestamp, recv_event.keycode);
-        for(int i = 0; i < KEY_EVENT_SIZE; i++) {
-            printf("Byte %d: received=0x%02X expected=0x%02X\n", i, recv_buf[i], send_buf[i]);
-        }
-        sleep_ms(1000);
     }
 
     /*
@@ -343,7 +348,6 @@ int main() {
     printf("Keyboard left initialized\n");
 
     initalize_keyboard(kb_left);
-    initalize_parent();
 
 
     init_tusb();
