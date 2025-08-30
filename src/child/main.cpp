@@ -26,11 +26,11 @@
 #include "common/keyboard_layout.h"
 #include "common/key_event.h"
 #include "common/communication.h"
-
 const int LED_PIN = 17;
 #define UART_ID uart1
 #define UART_TX_PIN 4
 #define UART_RX_PIN 5
+
 
 enum class State {
     RETURN_LENGTH,
@@ -144,19 +144,20 @@ int main() {
         .keycode = 'A'
     };
     uint8_t buf[KEY_EVENT_SIZE];
-    serialize_key_event(event, buf);
-    gpio_put(LED_PIN, 1);
-    uart_puts(UART_ID, "Sending KeyEvent over UART...\n");
-    uart_write_blocking(UART_ID, buf, KEY_EVENT_SIZE);
-    printf("Original KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", event.is_pressed, event.timestamp, event.keycode);
-    for(int i = 0; i < KEY_EVENT_SIZE; i++) {
-        printf("Byte %d: sent=0x%02X\n", i, buf[i]);
-    }
-    while(true) {
-        gpio_put(LED_PIN, 1);
-        sleep_ms(100);
+    while(1) {
         gpio_put(LED_PIN, 0);
-        sleep_ms(100);
+        sleep_ms(500);
+        gpio_put(LED_PIN, 1);
+        sleep_ms(500);
+        serialize_key_event(event, buf);
+        gpio_put(LED_PIN, 1);
+        uart_write_blocking(UART_ID, buf, KEY_EVENT_SIZE);
+        uart_tx_wait_blocking(UART_ID);
+        printf("Original KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", event.is_pressed, event.timestamp, event.keycode);
+        for(int i = 0; i < KEY_EVENT_SIZE; i++) {
+            printf("Byte %d: sent=0x%02X\n", i, buf[i]);
+        }
+        sleep_ms(1000);
     }
     /*
     gpio_init(LED_PIN);

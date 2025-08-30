@@ -293,13 +293,28 @@ int main() {
     printf("Initializing UART...\n");
     initialize_uart();
 
+    KeyEvent expected_event = {
+        .is_pressed = true,
+        .timestamp = 123456789,
+        .keycode = 'A'
+    };
+    uint8_t send_buf[KEY_EVENT_SIZE];
+    serialize_key_event(expected_event, send_buf);
+
     uint8_t recv_buf[KEY_EVENT_SIZE];
-    read_from_uart(UART_ID, recv_buf, KEY_EVENT_SIZE);
-    KeyEvent recv_event;
-    deserialize_key_event(recv_buf, recv_event);
-    printf("Received KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", recv_event.is_pressed, recv_event.timestamp, recv_event.keycode);
-    for(int i = 0; i < KEY_EVENT_SIZE; i++) {
-        printf("Byte %d: received=0x%02X\n", i, recv_buf[i]);
+    while(true) {
+        bool valid = read_from_uart(UART_ID, recv_buf, KEY_EVENT_SIZE);
+        if(!valid) {
+            printf("Timeout reading from UART\n");
+            continue;
+        }
+        KeyEvent recv_event;
+        deserialize_key_event(recv_buf, recv_event);
+        printf("Received KeyEvent: is_pressed=%d, timestamp=%llu, keycode=%c\n", recv_event.is_pressed, recv_event.timestamp, recv_event.keycode);
+        for(int i = 0; i < KEY_EVENT_SIZE; i++) {
+            printf("Byte %d: received=0x%02X expected=0x%02X\n", i, recv_buf[i], send_buf[i]);
+        }
+        sleep_ms(1000);
     }
 
     /*
