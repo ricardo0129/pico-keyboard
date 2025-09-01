@@ -26,6 +26,6 @@ struct KeyBoard {
 
 void initalize_keyboard(KeyBoard& kb);
 
-void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t, std::map<uint8_t, KeyState>*));
+void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t, std::map<uint8_t, KeyState>&));
 
 #endif // KEYBOARD_H

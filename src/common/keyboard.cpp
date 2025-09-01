@@ -9,6 +9,14 @@ KeyBoard::KeyBoard(int* _row_to_pin, int* _col_to_pin,std::vector<std::vector<ch
     rows = _rows;
     cols = _cols;
     keystate = new std::map<uint8_t, KeyState>;
+    for(int i = 0; i < rows; i++) {
+        for(int j = 0; j < row_layout[i].size(); j++) {
+            (*keystate)[row_layout[i][j]] = {
+                .is_pressed = false,
+                .last_changed = 0
+            };
+        }
+    }
 }
 
 int KeyBoard::cols_at_row(int row) {
@@ -32,7 +40,7 @@ void initalize_keyboard(KeyBoard& kb) {
     }
 }
 
-void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t, std::map<uint8_t, KeyState>*)) {
+void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t, std::map<uint8_t, KeyState>&)) {
     for(int i = 0; i < kb.rows; i++) {
         gpio_put(kb.row_to_pin[i], 1); // Set the row pin high
         sleep_ms(1); // Allow time for the signal to stabilize
@@ -41,7 +49,7 @@ void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t, std::map<
             uint64_t now = time_us_64();
             bool is_pressed = gpio_get(col_pin); // Active low
             uint8_t keycode = kb.row_layout[i][j];
-            func(is_pressed, now, keycode, kb.keystate); // Call the function with the key state
+            func(is_pressed, now, keycode, *kb.keystate); // Call the function with the key state
             /*
             if(is_pressed != kb.key_states[i][j].is_pressed) {
                 kb.key_states[i][j].is_pressed = is_pressed;

@@ -28,54 +28,24 @@
 uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
 
 static circular_queue<KeyEvent> key_event_queue;
-std::map<uint8_t, KeyState> key_states;
 const int LED_PIN = 17;
 
 uint8_t buf[MAX_BUFFER_SIZE];
 
-void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode) {
-    KeyEvent event = {
-        .is_pressed = is_pressed,
-        .timestamp = now,
-        .keycode = keycode
-    };
-    key_event_queue.push(event);
+void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode, std::map<uint8_t, KeyState>& keystate) {
+    KeyState current = keystate[keycode];
+    if(is_pressed != current.is_pressed) { //keystate has changed, add to processing queue
+        KeyEvent event = {
+            .is_pressed = is_pressed,
+            .keycode = keycode
+        };
+        key_event_queue.push(event);
+        keystate[keycode].is_pressed = is_pressed;
+        keystate[keycode].last_changed = now;
+    }
 }
 
-
-
 void run_parent() {
-    /*
-    int count = i2c_read_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, true);
-    if (count < 0) {
-        puts("Couldn't read from child, please check your wiring!");
-        gpio_put(LED_PIN, 1);
-        hard_assert(false, "I2C read error");
-        return;
-    }
-    hard_assert(count == 1, "Expected to read 1 byte");
-    uint8_t requested_length = buf[0];
-    hard_assert(requested_length <= MAX_BUFFER_SIZE, "Requested length exceeds buffer size");
-    printf("Requesting %d bytes from child...\n", requested_length);
-    if(requested_length > 0) {
-        gpio_put(LED_PIN, 1);
-        i2c_write_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, true);
-        printf("Reading %d bytes from child...\n", buf[0]);
-        //read all the requested bytes
-        for(int i = 0; i < requested_length; i++) {
-            count = i2c_read_blocking(i2c1, I2C_CHILD_ADDRESS, buf, KEY_EVENT_SIZE, false);
-            hard_assert(count == requested_length, "Expected to read %d bytes, got %d", requested_length, count);
-            KeyEvent event;
-            deserialize_key_event(buf, event);
-            key_event_queue.push(event);
-        }
-    }
-    else {
-        printf("Requested length is zero, nothing to write\n");
-        i2c_write_blocking(i2c1, I2C_CHILD_ADDRESS, buf, 1, false);
-        printf("Done writing\n");
-    }
-    */
     uint8_t buf[KEY_EVENT_SIZE];
     bool valid = read_from_uart(UART_ID, buf, KEY_EVENT_SIZE);
     if(!valid) {
@@ -98,6 +68,9 @@ void run_parent() {
 
 }
 
+
+void read_events() {
+}
 
 void hid_task(void);
 void init_tusb() {
@@ -143,19 +116,13 @@ static void send_hid_report(uint8_t report_id) {
     // skip if hid is not ready yet
     if (!tud_hid_ready()) 
         return;
-    bool changed = false;
     uint8_t keycode[MAX_KEY_COUNT] = { 0 };
     uint8_t key_count = 0;
     uint8_t modifier  = 0;
     int queue_size = key_event_queue.size();
 
     for(int i = 0; i < queue_size && key_count < MAX_KEY_COUNT; i++) {
-        const KeyEvent& event = key_event_queue.peek();
-        KeyState& state = key_states[event.keycode];
-        if(state.is_pressed == event.is_pressed) {
-            key_event_queue.pop();
-            continue;
-        }
+        KeyEvent event = key_event_queue.pop();
         uint8_t current_modifier = 0;
         if(conv_table[event.keycode][0]) {
             current_modifier = KEYBOARD_MODIFIER_LEFTSHIFT;
@@ -167,20 +134,13 @@ static void send_hid_report(uint8_t report_id) {
             //Modifier has changed, stop processing events
             break;
         }
-        key_event_queue.pop();
-        if(state.is_pressed != event.is_pressed) {
-            //State of key has changed
-            if(event.is_pressed) {
-                //Key is pressed
-                keycode[key_count++] = conv_table[event.keycode][1];
-            }
-            changed = true;
+        if(event.is_pressed) {
+            //Key is pressed
+            keycode[key_count++] = conv_table[event.keycode][1];
         }
-        //Update the state
-        state.is_pressed = event.is_pressed;
-        state.last_changed = event.timestamp;
     }
-    if(changed) {
+    //some events must have been processed
+    if(queue_size) {
         if(key_count) {
             tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier, keycode);
         }
@@ -206,7 +166,6 @@ static void send_hid_report(uint8_t report_id) {
         changed = true;
     }
     */
-
 }
 
 
@@ -306,32 +265,34 @@ int main() {
     stdio_init_all();
     initialize_uart();
 
-    uart_init(UART_ID, BAUD);
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
-
-
+    /*
     frame_t tx, rx;
     uint8_t seq = 0;
-    proto_encode(&tx, (uint8_t *)"Hello, World!", TYPE_DATA, 13, seq++);
-    send_frame(&tx);
+    uint8_t buff[256];
+    
+    KeyEvent event = {
+        .is_pressed = true,
+        .keycode = 'A'
+    };
+
+    //take an event and send it
+    serialize_key_event(event, buff);
+    proto_encode(&tx, buff, TYPE_DATA, KEY_EVENT_SIZE, seq++);
+    for(int i = 0; i < 10; i++) {
+        send_frame(&tx);
+    }
+
+    KeyEvent received_event;
+    int j = 0;
     while(true) {
         if(recv_frame(&rx)) {
-            rx.data[rx.len] = '\0'; // Null-terminate the received data
-            printf("Got frame: seq=%d, len=%d, data=%s", rx.seq, rx.len, rx.data);
+            deserialize_key_event(rx.data, received_event); 
+            //printf("Got frame: seq=%d, len=%d", rx.seq, rx.len);
+            printf("%d: Event deserialized: is_pressed: %d keycode: %c\n", j, received_event.is_pressed, received_event.keycode);
+            j += 1;
         }
     }
-
-    /*
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-    for(int i = 0; i < 256; i++) {
-        key_states[i] = {
-            .is_pressed = false,
-            .last_changed = 0
-        };
-    }
-
+    */
     int row_to_pin[4] = {27, 28, 26, 22};
     int col_to_pin[5] = {21, 4, 5, 6, 7};
     KeyBoard kb_left(
@@ -341,10 +302,6 @@ int main() {
         4, // rows
         5  // cols
     );
-    hard_assert(kb_left.rows == 4, "Left keyboard rows should be 4");
-    hard_assert(kb_left.cols == 5, "Left keyboard cols should be 5");
-    hard_assert(kb_left.cols_at_row(0) == 5, "Left keyboard row 0 should have 5 cols");
-    hard_assert(kb_left.row_layout[0][0] == 'T', "Left keyboard row 0 col 0 should be Q");
     printf("Keyboard left initialized\n");
 
     initalize_keyboard(kb_left);
@@ -359,6 +316,5 @@ int main() {
         hid_task();
         sleep_ms(10); // sleep for 10 ms
     }
-    */
     return 0;
 }

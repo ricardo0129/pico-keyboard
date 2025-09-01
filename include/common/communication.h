@@ -51,7 +51,6 @@ bool recv_frame(frame_t* frame) {
 
     for(uint8_t i = 0; i < len; i++) {
         buf[3 + i] = uart_getc(UART_ID);
-        printf("Received byte %d: 0x%02X %c\n", i, buf[3 + i], buf[3 + i]);
     }
     uint8_t checksum = uart_getc(UART_ID);
     buf[3 + len] = checksum;
