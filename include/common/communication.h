@@ -4,10 +4,10 @@
 #include "hardware/uart.h"
 #include "common/proto.h"
 
-#define UART_ID uart1
+#define UART_ID uart0
 #define BAUD 115200
-#define UART_TX_PIN 4
-#define UART_RX_PIN 5
+#define UART_TX_PIN 0
+#define UART_RX_PIN 1
 
 bool read_from_uart(uart_inst_t* uart_id, uint8_t* buffer, int length) {
     uint64_t start_time = time_us_64();
@@ -44,6 +44,7 @@ bool recv_frame(frame_t* frame) {
     uint8_t type = uart_getc(UART_ID);
     uint8_t seq = uart_getc(UART_ID);
     uint8_t len = uart_getc(UART_ID);
+    return false;
     uint8_t buf[3 + MAX_PAYLOAD];
     buf[0] = type;
     buf[1] = seq;

@@ -1,33 +1,26 @@
-#include <unordered_map>
-#include <string.h>
-#include <time.h>
 #include "common/mylib.h"
-
 #include "pico/stdlib.h"
-
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-
 #include "bsp/board.h"
 #include "bsp/board_api.h"
 #include "tusb.h"
-
 #include "common/usb_descriptors.h"
 #include "common/keyboard.h"
-
 #include <pico/stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include "common/circular_queue.h"
 #include "common/keyboard_layout.h"
 #include "common/key_event.h"
 #include "common/communication.h"
 
 const int LED_PIN = 17;
-#define UART_ID uart1
-#define UART_TX_PIN 4
-#define UART_RX_PIN 5
+void blink() {
+    gpio_put(LED_PIN, 1);
+    sleep_ms(100);
+    gpio_put(LED_PIN, 0);
+    sleep_ms(100);
+}
 uint8_t seq = 0;
 
 
@@ -43,6 +36,8 @@ void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode, std::map<
             .keycode = keycode
         };
         context.mem.push(event);
+        keystate[keycode].is_pressed = is_pressed;
+        keystate[keycode].last_changed = now;
     }
 }
 
@@ -69,6 +64,8 @@ void initialize_uart() {
 
 int main() {
     stdio_init_all();
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
     //Initialize UART (communication)
     initialize_uart();
     printf("Initializing right side\n");
@@ -85,10 +82,10 @@ int main() {
     initalize_keyboard(kb_right);
     printf("Keyboard right initialized\n");
 
-
     while(true) {
         scan_keyboard(kb_right, process_key_press);
-        sleep_ms(1000); //TODO Change after debugging
+        write_events();
+        sleep_ms(10); //TODO Change after debugging
     }
     return 0;
 }

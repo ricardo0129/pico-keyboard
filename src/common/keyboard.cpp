@@ -1,6 +1,4 @@
 #include "common/keyboard.h"
-#include <map>
-#include <stdio.h>
 
 KeyBoard::KeyBoard(int* _row_to_pin, int* _col_to_pin,std::vector<std::vector<char>> _row_layout,int _rows, int _cols) {
     row_to_pin = _row_to_pin;
@@ -9,7 +7,7 @@ KeyBoard::KeyBoard(int* _row_to_pin, int* _col_to_pin,std::vector<std::vector<ch
     rows = _rows;
     cols = _cols;
     keystate = new std::map<uint8_t, KeyState>;
-    for(int i = 0; i < rows; i++) {
+    for(int i = 0; i < row_layout.size(); i++) {
         for(int j = 0; j < row_layout[i].size(); j++) {
             (*keystate)[row_layout[i][j]] = {
                 .is_pressed = false,

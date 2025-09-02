@@ -1,4 +1,3 @@
-#include <unordered_map>
 #include <string.h>
 #include <time.h>
 #include "common/mylib.h"
@@ -17,7 +16,6 @@
 #include "common/key_event.h"
 #include "common/circular_queue.h"
 #include "common/keyboard_layout.h"
-#include <map>
 #include "pico/stdlib.h"
 #include "hardware/uart.h"
 #include "common/communication.h"
@@ -29,7 +27,12 @@ uint8_t const conv_table[128][2] =  { HID_ASCII_TO_KEYCODE };
 
 static circular_queue<KeyEvent> key_event_queue;
 const int LED_PIN = 17;
-
+void blink() {
+    gpio_put(LED_PIN, 1);
+    sleep_ms(100);
+    gpio_put(LED_PIN, 0);
+    sleep_ms(100);
+}
 uint8_t buf[MAX_BUFFER_SIZE];
 
 void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode, std::map<uint8_t, KeyState>& keystate) {
@@ -45,31 +48,13 @@ void process_key_press(bool is_pressed, uint64_t now, uint8_t keycode, std::map<
     }
 }
 
-void run_parent() {
-    uint8_t buf[KEY_EVENT_SIZE];
-    bool valid = read_from_uart(UART_ID, buf, KEY_EVENT_SIZE);
-    if(!valid) {
-        //Timeout reading from UART
-        return;
-    }
-    uint8_t requested_length = buf[0];
-    if(requested_length > 0) {
-        KeyEvent event;
-        for(int i = 0; i < requested_length; i++) {
-            valid = read_from_uart(UART_ID, buf, KEY_EVENT_SIZE);
-            if(!valid) {
-                //Timeout reading from UART
-                return;
-            }
-            deserialize_key_event(buf, event);
-            key_event_queue.push(event);
-        }
-    }
-
-}
-
-
 void read_events() {
+    frame_t rx;
+    if(recv_frame(&rx)) {
+        KeyEvent e;
+        deserialize_key_event(rx.data, e); 
+        key_event_queue.push(e);
+    }
 }
 
 void hid_task(void);
@@ -263,8 +248,10 @@ void initialize_uart() {
 
 int main() {
     stdio_init_all();
-    initialize_uart();
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
 
+    initialize_uart();
     /*
     frame_t tx, rx;
     uint8_t seq = 0;
@@ -303,16 +290,14 @@ int main() {
         5  // cols
     );
     printf("Keyboard left initialized\n");
-
     initalize_keyboard(kb_left);
-
-
     init_tusb();
 
     while(1) {
+        //blink();
         tud_task(); // tinyusb device task
         scan_keyboard(kb_left, process_key_press);
-        run_parent();
+        read_events();
         hid_task();
         sleep_ms(10); // sleep for 10 ms
     }
