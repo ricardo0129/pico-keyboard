@@ -1,63 +1,64 @@
 #include "common/keyboard.h"
 
-KeyBoard::KeyBoard(int* _row_to_pin, int* _col_to_pin,std::vector<std::vector<char>> _row_layout,int _rows, int _cols) {
-    row_to_pin = _row_to_pin;
-    col_to_pin = _col_to_pin;
-    row_layout = _row_layout;
-    rows = _rows;
-    cols = _cols;
-    keystate = new std::map<uint8_t, KeyState>;
-    for(int i = 0; i < row_layout.size(); i++) {
-        for(int j = 0; j < row_layout[i].size(); j++) {
-            (*keystate)[row_layout[i][j]] = {
-                .is_pressed = false,
-                .last_changed = 0
-            };
-        }
+KeyBoard::KeyBoard(int *_row_to_pin, int *_col_to_pin,
+                   std::vector<std::vector<char>> _row_layout, int _rows,
+                   int _cols) {
+  row_to_pin = _row_to_pin;
+  col_to_pin = _col_to_pin;
+  row_layout = _row_layout;
+  rows = _rows;
+  cols = _cols;
+  keystate = new std::map<uint8_t, KeyState>;
+  for (int i = 0; i < row_layout.size(); i++) {
+    for (int j = 0; j < row_layout[i].size(); j++) {
+      (*keystate)[row_layout[i][j]] = {.is_pressed = false, .last_changed = 0};
     }
+  }
 }
 
 int KeyBoard::cols_at_row(int row) {
-    if(row < 0 || row >= rows) {
-        return -1; // Invalid row
-    }
-    return row_layout[row].size();
+  if (row < 0 || row >= rows) {
+    return -1; // Invalid row
+  }
+  return row_layout[row].size();
 }
 
-void initalize_keyboard(KeyBoard& kb) {
-    for(int i = 0; i < kb.cols; i++) {
-        int pin = kb.col_to_pin[i];
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_IN);
-    }
-    for(int i = 0; i < kb.rows; i++) {
-        int pin = kb.row_to_pin[i];
-        gpio_init(pin);
-        gpio_set_dir(pin, GPIO_OUT);
-        gpio_pull_down(pin);
-    }
+void initalize_keyboard(KeyBoard &kb) {
+  for (int i = 0; i < kb.cols; i++) {
+    int pin = kb.col_to_pin[i];
+    gpio_init(pin);
+    gpio_set_dir(pin, GPIO_IN);
+  }
+  for (int i = 0; i < kb.rows; i++) {
+    int pin = kb.row_to_pin[i];
+    gpio_init(pin);
+    gpio_set_dir(pin, GPIO_OUT);
+    gpio_pull_down(pin);
+  }
 }
 
-void scan_keyboard(KeyBoard& kb, void (*func)(bool, uint64_t, uint8_t, std::map<uint8_t, KeyState>&)) {
-    for(int i = 0; i < kb.rows; i++) {
-        gpio_put(kb.row_to_pin[i], 1); // Set the row pin high
-        sleep_ms(1); // Allow time for the signal to stabilize
-        for(int j = 0; j < kb.cols; j++) {
-            int col_pin = kb.col_to_pin[j];
-            uint64_t now = time_us_64();
-            bool is_pressed = gpio_get(col_pin); // Active low
-            uint8_t keycode = kb.row_layout[i][j];
-            func(is_pressed, now, keycode, *kb.keystate); // Call the function with the key state
-            /*
-            if(is_pressed != kb.key_states[i][j].is_pressed) {
-                kb.key_states[i][j].is_pressed = is_pressed;
-                kb.key_states[i][j].last_changed = now;
-                txq.push(kb.row_layout[i][j]); // Push the key to the queue
-                printf("Key %c at (%d, %d) %s\n", kb.row_layout[i][j], i, j, is_pressed ? "pressed" : "released");
-            }
-            */
-        }
-        gpio_put(kb.row_to_pin[i], 0); // Set the row pin low
+void scan_keyboard(KeyBoard &kb, void (*func)(bool, uint64_t, uint8_t,
+                                              std::map<uint8_t, KeyState> &)) {
+  for (int i = 0; i < kb.rows; i++) {
+    gpio_put(kb.row_to_pin[i], 1); // Set the row pin high
+    sleep_ms(1);                   // Allow time for the signal to stabilize
+    for (int j = 0; j < kb.cols; j++) {
+      int col_pin = kb.col_to_pin[j];
+      uint64_t now = time_us_64();
+      bool is_pressed = gpio_get(col_pin); // Active low
+      uint8_t keycode = kb.row_layout[i][j];
+      func(is_pressed, now, keycode,
+           *kb.keystate); // Call the function with the key state
+                          /*
+                          if(is_pressed != kb.key_states[i][j].is_pressed) {
+                              kb.key_states[i][j].is_pressed = is_pressed;
+                              kb.key_states[i][j].last_changed = now;
+                              txq.push(kb.row_layout[i][j]); // Push the key to the queue
+                              printf("Key %c at (%d, %d) %s\n", kb.row_layout[i][j], i, j,
+                          is_pressed ? "pressed" : "released");
+                          }
+                          */
     }
+    gpio_put(kb.row_to_pin[i], 0); // Set the row pin low
+  }
 }
-

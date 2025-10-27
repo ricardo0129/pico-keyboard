@@ -19,8 +19,7 @@ static const uint32_t I2C_PARENT_SCL_PIN = 3;
 const int MAX_KEY_COUNT = 6;
 const uint64_t DEBOUNCE_US = 5000;
 const uint64_t KEY_HOLD_US = 300000; // 300ms
-#endif // CONSTANTS_H
-
+#endif                               // CONSTANTS_H
 
 /* Pinout
  * Bat  RGB
@@ -35,5 +34,4 @@ const uint64_t KEY_HOLD_US = 300000; // 300ms
  * E2A  C4
  * E2B  E1B
  * C0   E1A
-*/
-
+ */
