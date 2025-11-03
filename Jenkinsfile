@@ -59,8 +59,6 @@ pipeline {
                     sh '''
                         scp -i $SSH_KEY -o StrictHostKeyChecking=no build/*.uf2 \
                         ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/*.uf2
-
-                        EOF
                     '''
                 }
             }
